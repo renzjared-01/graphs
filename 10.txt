@@ -129,6 +129,118 @@ if __name__ == '__main__':
     s, t = 6, 0
     print(dag_shortest_path(n, edges, s, t))
 
+-----------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef long long ll;
+const ll INF = (1LL<<60);
+
+/* adjacency using edge arrays (safe and efficient) */
+int *head, *to, *nxt, *wt;
+int edge_cnt = 0;
+
+void init_graph(int n, int m) {
+    head = (int*)malloc((n+1)*sizeof(int));
+    for (int i = 0; i <= n; ++i) head[i] = -1;
+    to  = (int*)malloc(m * sizeof(int));
+    nxt = (int*)malloc(m * sizeof(int));
+    wt  = (int*)malloc(m * sizeof(int));
+    edge_cnt = 0;
+}
+
+void add_edge(int u, int v, int w) {
+    to[edge_cnt] = v;
+    wt[edge_cnt] = w;
+    nxt[edge_cnt] = head[u];
+    head[u] = edge_cnt++;
+}
+
+/* DFS topo */
+void dfs_topo(int u, int *vis, int *stack, int *stack_sz) {
+    vis[u] = 1;
+    for (int e = head[u]; e != -1; e = nxt[e]) {
+        int v = to[e];
+        if (!vis[v]) dfs_topo(v, vis, stack, stack_sz);
+    }
+    /* push u onto stack (post-order) */
+    stack[(*stack_sz)++] = u;
+}
+
+/* shortest paths in DAG from source 'src' */
+void shortest_path_dag(int n, int src, ll *dist, int *stack, int stack_sz) {
+    for (int i = 0; i < n; ++i) dist[i] = INF;
+    dist[src] = 0;
+
+    /* nodes in topo order: stack currently is reverse topo (postorder),
+       so iterate from stack_sz-1 down to 0, or reverse the stack. */
+    for (int i = stack_sz - 1; i >= 0; --i) {
+        int u = stack[i];
+        if (dist[u] == INF) continue; /* unreachable, skip relax */
+        for (int e = head[u]; e != -1; e = nxt[e]) {
+            int v = to[e];
+            ll w = wt[e];
+            if (dist[u] + w < dist[v]) dist[v] = dist[u] + w;
+        }
+    }
+}
+
+int main(void) {
+    /* Example usage:
+       n = number of vertices (0..n-1)
+       m = number of edges
+       edges: (u -> v, weight)
+    */
+    int n = 7;
+    int m = 11; /* allocate at least number of edges you'll add */
+
+    init_graph(n, m);
+
+    /* sample edges (same as you used earlier, add weights) */
+    add_edge(1, 0, 2);
+    add_edge(1, 4, 3);
+    add_edge(2, 0, 1);
+    add_edge(3, 0, 4);
+    add_edge(3, 2, -2);  /* negative weight allowed on DAG */
+    add_edge(6, 2, 2);
+    add_edge(6, 5, 1);
+    add_edge(5, 2, 2);
+    add_edge(5, 1, 1);
+    add_edge(6, 3, 1);
+    add_edge(0, 4, 5);
+
+    /* topological sort via DFS */
+    int *vis = (int*)calloc(n, sizeof(int));
+    int *stack = (int*)malloc(n * sizeof(int));
+    int stack_sz = 0;
+    for (int i = 0; i < n; ++i) {
+        if (!vis[i]) dfs_topo(i, vis, stack, &stack_sz);
+    }
+
+    /* optional: verify stack_sz == n for a DAG with all nodes visited
+       (if there are cycles, this DFS-based approach will still return
+       an ordering but it won't be a valid topo order — usually we detect
+       cycles with a 3-color DFS if needed). For most DAG usage this is fine. */
+
+    /* compute shortest paths from source (choose source node) */
+    int src = 6;
+    ll *dist = (ll*)malloc(n * sizeof(ll));
+    shortest_path_dag(n, src, dist, stack, stack_sz);
+
+    /* print distances */
+    printf("Shortest distances from %d:\n", src);
+    for (int i = 0; i < n; ++i) {
+        if (dist[i] == INF) printf("node %d: INF\n", i);
+        else printf("node %d: %lld\n", i, dist[i]);
+    }
+
+    /* cleanup */
+    free(head); free(to); free(nxt); free(wt);
+    free(vis); free(stack); free(dist);
+    return 0;
+}
+
 
 
 #############################
@@ -282,4 +394,31 @@ t = rooted_tree_from_edgelist(n, edgelist, root)
 for i in range(len(t)):
     print(f'{i}: {t[i]}')
 print(get_diameter(n, edgelist))
-    
+
+#################################
+lexicographically minimal toposort
+
+import heapq
+
+def lexicographically_minimal_toposort(n, edges):
+    indeg = [0]*n
+    adj = [[] for _ in range(n)]
+    for u, v in edges:
+        indeg[v] += 1
+        adj[u].append(v)
+
+    heap = [i for i in range(n) if indeg[i] == 0]
+    heapq.heapify(heap)
+
+    res = []
+    while heap:
+        u = heapq.heappop(heap)   # pick smallest available source
+        res.append(u)
+        for v in adj[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                heapq.heappush(heap, v)
+
+    return res if len(res) == n else None  # None => cycle
+
+######################################
