@@ -1,44 +1,77 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Copy demo</title>
+  <meta charset="utf-8">
+  <title>C</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 3em auto;
+      text-align: center;
+      background: #fafafa;
+      color: #333;
+    }
+    pre {
+      text-align: left;
+      background: #f0f0f0;
+      padding: 1em;
+      border-radius: 0.5em;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    button {
+      margin-top: 1em;
+      padding: 0.5em 1em;
+      font-size: 1em;
+      border: none;
+      border-radius: 0.5em;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
 </head>
 <body>
-  <p id="msg">Click the button to copy the secret text to your clipboard.</p>
-  <button id="copyBtn">Copy text</button>
+  <p>C.</p>
+
+  <pre id="snippet">Loading.</pre>
+  <button id="copyBtn">[         ]</button>
 
   <script>
-    const textToCopy = "Text you want copied";
+    const snippetElement = document.getElementById("snippet");
+    const copyButton = document.getElementById("copyBtn");
+    let snippetText = "";
 
-    async function tryCopy() {
-      // Prefer modern Clipboard API
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(textToCopy);
-          document.getElementById('msg').textContent = 'Copied!';
-        } catch (err) {
-          document.getElementById('msg').textContent = 'Copy failed: ' + err;
-        }
-        return;
-      }
+    fetch("10.txt")
+      .then(response => {
+        if (!response.ok) throw new Error("Failed to load snippet");
+        return response.text();
+      })
+      .then(text => {
+        snippetText = text;
+        snippetElement.textContent = text;
+      })
+      .catch(err => {
+        snippetElement.textContent = "Error loading snippet: " + err.message;
+        copyButton.disabled = true;
+      });
 
-      // Fallback: old execCommand method (requires focus + user gesture)
-      const ta = document.createElement('textarea');
-      ta.value = textToCopy;
-      document.body.appendChild(ta);
-      ta.select();
+    // Copy to clipboard when button is clicked
+    copyButton.addEventListener("click", async () => {
       try {
-        document.execCommand('copy');
-        document.getElementById('msg').textContent = 'Copied (fallback)!';
+        await navigator.clipboard.writeText(snippetText);
+        copyButton.textContent = "✅ Copied!";
+        setTimeout(() => (copyButton.textContent = "Copy to Clipboard"), 1500);
       } catch (err) {
-        document.getElementById('msg').textContent = 'Copy fallback failed';
-      } finally {
-        document.body.removeChild(ta);
+        alert("Clipboard copy failed: " + err);
       }
-    }
-
-    document.getElementById('copyBtn').addEventListener('click', tryCopy);
+    });
   </script>
 </body>
 </html>
