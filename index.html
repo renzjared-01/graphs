@@ -55,7 +55,7 @@
       })
       .then(text => {
         snippetText = text;
-        snippetElement.textContent = text;
+        snippetElement.textContent = "blank";
       })
       .catch(err => {
         snippetElement.textContent = "Error loading snippet: " + err.message;
@@ -67,7 +67,7 @@
       try {
         await navigator.clipboard.writeText(snippetText);
         copyButton.textContent = "✅ Copied!";
-        setTimeout(() => (copyButton.textContent = "Copy to Clipboard"), 1500);
+        setTimeout(() => (copyButton.textContent = "[              ]"), 1500);
       } catch (err) {
         alert("Clipboard copy failed: " + err);
       }
