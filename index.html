@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Copy demo</title>
+</head>
+<body>
+  <p id="msg">Click the button to copy the secret text to your clipboard.</p>
+  <button id="copyBtn">Copy text</button>
+
+  <script>
+    const textToCopy = "Text you want copied";
+
+    async function tryCopy() {
+      // Prefer modern Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          document.getElementById('msg').textContent = 'Copied!';
+        } catch (err) {
+          document.getElementById('msg').textContent = 'Copy failed: ' + err;
+        }
+        return;
+      }
+
+      // Fallback: old execCommand method (requires focus + user gesture)
+      const ta = document.createElement('textarea');
+      ta.value = textToCopy;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        document.getElementById('msg').textContent = 'Copied (fallback)!';
+      } catch (err) {
+        document.getElementById('msg').textContent = 'Copy fallback failed';
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+
+    document.getElementById('copyBtn').addEventListener('click', tryCopy);
+  </script>
+</body>
+</html>
