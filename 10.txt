@@ -174,3 +174,112 @@ if __name__ == '__main__':
 
 
 #########################################
+TREES
+def adj_from_edgelist(n, edges):
+    adj = {u: [] for u in range(n)}
+    for (u, v) in edges:
+        adj[u].append(v)
+        adj[v].append(u)
+    return adj
+
+
+def rooted_tree_from_edgelist(n, edges, root):
+    assert len(edges) == n - 1
+
+    adj = adj_from_edgelist(n, edges)
+    vis = set([root])
+    stak = [root]
+
+    children = [[] for _ in range(n)]
+
+    while stak:
+        u = stak.pop()
+        for v in adj[u]:
+            if v not in vis:
+                children[u].append(v)
+                vis.add(v)
+                stak.append(v)
+
+    # connected check
+    assert len(vis) == n
+
+    return children
+
+
+def get_diameter(n, edges):
+    root = 1
+    tree = rooted_tree_from_edgelist(n, edges, root)
+
+    farthest_desc = [-1 for _ in range(n)]
+
+    def _f(i):
+        farthest_desc[i] = 1 + max((_f(j) for j in tree[i]), default=-1)
+        return farthest_desc[i]
+
+    _f(root)
+
+
+    diameter = 0
+    for i in range(n):
+        if not tree[i]:
+            diameter = max(diameter, 0)
+        elif len(tree[i]) == 1:
+            diameter = max(diameter, 1 + farthest_desc[tree[i][0]])
+        else:
+            top_two = []
+            for j in tree[i]:
+                if len(top_two) < 2:
+                    top_two.append(farthest_desc[j])
+                    top_two.sort(reverse=True)  # this is constant time for <= 2 elements
+                elif farthest_desc[j] > top_two[0]:
+                    top_two[0], top_two[1] = farthest_desc[j], top_two[0]
+                elif top_two[0] >= farthest_desc[j] > top_two[1]:
+                    top_two[1] = farthest_desc[j]
+            diameter = max(diameter, 2 + sum(top_two))
+
+    return diameter
+
+
+def diameter2(n, edges):
+
+    def farthest(adj, u):
+        stak, vis = [u], set([u])
+        dists = [0] * n
+        while stak:
+            u = stak.pop()
+            for v in adj[u]:
+                if v not in vis:
+                    vis.add(v)
+                    stak.append(v)
+                    dists[v] = dists[u] + 1
+        assert len(vis) == n
+        far = max(dists)
+        return (next((v for v in range(n) if dists[v] == far)), far)
+
+    assert len(edges) == n - 1
+    adj = adj_from_edgelist(n, edges)
+    start_node = 0
+    next_node, _ = farthest(adj, start_node)
+    nexter_node, dist = farthest(adj, next_node)
+    return dist
+
+
+edgelist = [
+    (0, 1),
+    (0, 8),
+    (1, 2),
+    (1, 3),
+    (1, 6),
+    (1, 7),
+    (3, 4),
+    (3, 5),
+    (8, 9)
+]
+n = 10
+root = 1
+
+t = rooted_tree_from_edgelist(n, edgelist, root)
+for i in range(len(t)):
+    print(f'{i}: {t[i]}')
+print(get_diameter(n, edgelist))
+    
