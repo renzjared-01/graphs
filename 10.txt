@@ -283,6 +283,56 @@ if __name__ == '__main__':
         # (0, 5),
     ]
     print(toposort(n, edges))
+--------------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 1000  // max number of nodes
+
+int adj[MAXN][MAXN]; // adjacency matrix (for simplicity)
+int n;               // number of nodes
+int indeg[MAXN];     // optional for Kahn
+int visited[MAXN];
+int topo[MAXN];      // stores topological order
+int topo_idx;        // current index for topo array
+int adj_size[MAXN];  // number of neighbors for each node
+
+void dfs(int u) {
+    visited[u] = 1;
+    for (int i = 0; i < adj_size[u]; i++) {
+        int v = adj[u][i];
+        if (!visited[v]) dfs(v);
+    }
+    topo[topo_idx++] = u; // append after visiting neighbors (postorder)
+}
+
+int main() {
+    n = 6; // example nodes 0..5
+
+    // Example graph edges (directed)
+    // 5 -> 2, 5 -> 0, 4 -> 0, 4 -> 1, 2 -> 3, 3 -> 1
+    adj_size[5] = 2; adj[5][0] = 2; adj[5][1] = 0;
+    adj_size[4] = 2; adj[4][0] = 0; adj[4][1] = 1;
+    adj_size[2] = 1; adj[2][0] = 3;
+    adj_size[3] = 1; adj[3][0] = 1;
+
+    // Initialize visited array
+    for (int i = 0; i < n; i++) visited[i] = 0;
+
+    topo_idx = 0;
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) dfs(i);
+    }
+
+    // topo[] is in reverse postorder, reverse it
+    printf("Topological order:\n");
+    for (int i = topo_idx-1; i >= 0; i--) {
+        printf("%d ", topo[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
 
 
 #########################################
