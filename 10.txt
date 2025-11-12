@@ -1,44 +1,91 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Copy demo</title>
-</head>
-<body>
-  <p id="msg">Click the button to copy the secret text to your clipboard.</p>
-  <button id="copyBtn">Copy text</button>
+from collections import defaultdict
+from typing import Iterable, Dict, List, Optional, Tuple, Any
 
-  <script>
-    const textToCopy = "Text you want copied";
+def make_adjacency_list(G) -> Dict[Any, List[Any]]:
+    """
+    Accepts either:
+      - a dict mapping node -> iterable of neighbors (used as-is), or
+      - an iterable of edges (u, v). Edges are treated as undirected.
+    Returns a dict mapping node -> list of neighbors.
+    """
+    if isinstance(G, dict):
+        return {k: list(v) for k, v in G.items()}
+    adj = defaultdict(list)
+    for edge in G:
+        if len(edge) < 2:
+            continue
+        u, v = edge[0], edge[1]
+        adj[u].append(v)
+        adj[v].append(u)  # treat as undirected; remove this line for directed graphs
+    return dict(adj)
 
-    async function tryCopy() {
-      // Prefer modern Clipboard API
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(textToCopy);
-          document.getElementById('msg').textContent = 'Copied!';
-        } catch (err) {
-          document.getElementById('msg').textContent = 'Copy failed: ' + err;
-        }
-        return;
-      }
+def construct_path(parent: Dict[Any, Any], start: Any, end: Any) -> List[Any]:
+    """Reconstruct path from start to end using parent map. Returns list of nodes from start..end."""
+    path = []
+    cur = end
+    while True:
+        path.append(cur)
+        if cur == start:
+            break
+        cur = parent.get(cur)
+        if cur is None:
+            # parent chain broken -> no path
+            return []
+    path.reverse()
+    return path
 
-      // Fallback: old execCommand method (requires focus + user gesture)
-      const ta = document.createElement('textarea');
-      ta.value = textToCopy;
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand('copy');
-        document.getElementById('msg').textContent = 'Copied (fallback)!';
-      } catch (err) {
-        document.getElementById('msg').textContent = 'Copy fallback failed';
-      } finally {
-        document.body.removeChild(ta);
-      }
+def find_path(G, x, y) -> Optional[List[Any]]:
+    """
+    Find a path from node x to node y in graph G using DFS (stack).
+    Returns a list of nodes representing the path x -> ... -> y, or None if no path exists.
+    G may be either an adjacency dict or an iterable of (u, v) edges.
+    """
+    adj = make_adjacency_list(G)
+
+    # quick check: if start or end not in graph, no path
+    if x not in adj or y not in adj:
+        return None
+
+    visited = set()
+    parent: Dict[Any, Any] = {}
+    to_visit = []  # use list as stack
+
+    visited.add(x)
+    to_visit.append(x)
+
+    while to_visit:
+        u = to_visit.pop()
+        for v in adj.get(u, []):
+            if v not in visited:
+                visited.add(v)
+                parent[v] = u
+                to_visit.append(v)
+        if y in visited:
+            return construct_path(parent, x, y)
+
+    # finished search and y wasn't reached
+    return None
+
+# Example usage:
+if __name__ == "__main__":
+    # adjacency dict example
+    G_dict = {
+        0: [1, 2],
+        1: [0, 3],
+        2: [0],
+        3: [1]
     }
+    print(find_path(G_dict, 0, 3))  # -> [0, 1, 3]
 
-    document.getElementById('copyBtn').addEventListener('click', tryCopy);
-  </script>
-</body>
-</html>
+    # edge list example (undirected)
+    edges = [(0, 1), (0, 2), (1, 3)]
+    print(find_path(edges, 2, 3))  # -> [2, 0, 1, 3]
+
+
+
+
+
+
+#############################
+
+
