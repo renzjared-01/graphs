@@ -471,7 +471,7 @@ def lexicographically_minimal_toposort(n, edges):
 
     return res if len(res) == n else None  # None => cycle
 
-######################################
+22 ######################################
 class UnionFind:
     def __init__(self, n):
         self.parent = [*range(n)]
@@ -538,3 +538,102 @@ if __name__ == '__main__':
         (7, 8, 3),
         (8, 9, 2),
     ]))
+
+
+23 ####################################################
+def edgelist_to_adj(n, edges):
+    adj = {i: [] for i in range(n)}
+    for (w, u, v) in edges:
+        adj[u].append((w, v))
+    return adj
+
+def min_sift_up(H):
+    i = len(H) - 1
+    while i != 0:
+        p = (i - 1) // 2
+        if H[i] < H[p]:
+            H[i], H[p] = H[p], H[i]
+            i = p
+        else:
+            break
+
+def min_sift_down(H):
+    i = 0
+    while i * 2 + 1 < len(H):
+        l = i * 2 + 1
+        if l + 1 >= len(H) or H[l] < H[l + 1]:
+            j = l
+        else:
+            j = l + 1
+        if H[i] > H[j]:
+            H[i], H[j] = H[j], H[i]
+            i = j
+        else:
+            break
+
+
+def minheap_push(H, v):
+    H.append(v)
+    min_sift_up(H)
+
+def minheap_pop(H):
+    if not H:
+        raise ValueError
+    res = H[0]
+    H[0], H[-1] = H[-1], H[0]
+    H.pop()
+    min_sift_down(H)
+    return res
+
+def dijkstra2(adj, s):
+    n = len(adj)
+    d = [float('inf')] * n
+    pred = [None] * n  # with pred
+    pq = [(0, None, s)] # d[u], parent, u
+    while pq:
+        d_p, p, u = minheap_pop(pq)
+        if d[u] == float('inf'):
+            d[u] = d_p
+            pred[u] = p
+            for (w, v) in adj[u]:
+                if d[v] > d[u] + w:
+                    minheap_push(pq, (d[u] + w, u, v))
+    return d, pred
+    # O(e lg e)
+
+edgelist = [
+    (6, 0, 1),
+    (6, 1, 0),
+    (5, 0, 4),
+    (5, 4, 0),
+
+    (4, 1, 2),
+    (4, 2, 1),
+    (3, 1, 4),
+    (3, 4, 1),
+    (10, 1, 5),
+    (10, 5, 1),
+
+    (3, 2, 3),
+    (3, 3, 2),
+    (7, 2, 4),
+    (7, 4, 2),
+    (1, 2, 5),
+    (1, 5, 2),
+
+    (2, 3, 4),
+    (2, 4, 3),
+    (7, 3, 5),
+    (7, 5, 3),
+    (10, 3, 6),
+    (10, 6, 3),
+
+    (2, 5, 6),
+    (2, 6, 5)
+]
+
+adj = edgelist_to_adj(7, edgelist)
+res2, pred = dijkstra2(adj, 0)
+for i in range(7):
+    print(f'{i}: {res[i]}')
+print(pred)
