@@ -601,6 +601,22 @@ def dijkstra2(adj, s):
     return d, pred
     # O(e lg e)
 
+def dijkstra2b(adj, s):
+    n = len(adj)
+    d = [float('inf')] * n
+    pred = [None] * n
+    pq = [(0, s)]  # (distance, node)
+    while pq:
+        d_p, u = minheap_pop(pq)
+        if d[u] == float('inf'):
+            d[u] = d_p
+            for (w, v) in adj[u]:
+                if d[v] > d[u] + w:
+                    pred[v] = u
+                    minheap_push(pq, (d[u] + w, v))
+    return d, pred
+
+
 edgelist = [
     (6, 0, 1),
     (6, 1, 0),
