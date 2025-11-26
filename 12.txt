@@ -436,13 +436,87 @@ print(num_attempts, ans)
 num_attempts, ans = find_line_mc(points_with_no_answer)
 print(num_attempts, ans)
 
-############################################################
-############################################################
-############################################################
-
-
 # 26 ###########################################################
+# Hashing
+class HashMapChaining:
+    """
+    A simple Hash Map implementation using Separate Chaining.
+    """
+    def __init__(self, capacity=10):
+        # c is the capacity (number of buckets)
+        self.capacity = capacity 
+        # .a: array of lists (buckets), initialized to 'capacity' empty lists
+        self.buckets = [[] for _ in range(self.capacity)]
 
+    def _hash(self, key):
+        """
+        The hash function h(k). 
+        Uses Python's built-in hash() and the modulo operator to get an index 
+        within the array bounds [0, capacity - 1].
+        """
+        # Ensure the hash result is non-negative and within capacity
+        return hash(key) % self.capacity
+
+    def set(self, key, value):
+        """
+        Inserts or updates the value associated with the key.
+        Corresponds to the .set(k, v) method.
+        """
+        index = self._hash(key)
+        bucket = self.buckets[index]
+
+        # 1. Search for an existing key and update if found
+        for i, (k_prime, v_prime) in enumerate(bucket):
+            if k_prime == key:
+                # Replace old entry: .a[h(k)][i] ≔ (k, v)
+                bucket[i] = (key, value)
+                return
+
+        # 2. If key is new, append the new entry
+        # .a[h(k)].append((k, v))
+        bucket.append((key, value))
+
+    def get(self, key):
+        """
+        Retrieves the value associated with the key.
+        Corresponds to the .get(k) method.
+        """
+        index = self._hash(key)
+        bucket = self.buckets[index]
+
+        # 1. Iterate the chain and return value if key is found
+        for k_prime, v_prime in bucket:
+            if k_prime == key:
+                return v_prime
+        
+        # 2. Key not found: key error
+        raise KeyError(f"Key '{key}' not found in the map")
+
+# --- Example Usage ---
+my_map = HashMapChaining(capacity=5)
+
+# Insert new entries
+my_map.set("apple", 100)
+my_map.set("banana", 200)
+my_map.set("cherry", 300)
+
+# Retrieve a value
+print(f"Value for 'banana': {my_map.get('banana')}")
+
+# Update an entry
+my_map.set("apple", 150)
+print(f"New value for 'apple': {my_map.get('apple')}")
+
+# Show the underlying structure (demonstrates chaining/hashing)
+print("\nUnderlying Buckets:")
+for i, chain in enumerate(my_map.buckets):
+    print(f"Bucket {i}: {chain}")
+
+# Example of a key error
+try:
+    my_map.get("grape")
+except KeyError as e:
+    print(f"\nCaught Error: {e}")
 
 ############################################################
 ############################################################
