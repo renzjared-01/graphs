@@ -519,5 +519,225 @@ except KeyError as e:
     print(f"\nCaught Error: {e}")
 
 ############################################################
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+// Define the capacity of our hash table (the number of "buckets")
+#define CAPACITY 10
+
+// --- Data Structures ---
+
+// 1. Node Structure (for the Linked List/Chain)
+// Each node holds a key-value pair and points to the next entry in the chain.
+typedef struct Node {
+    char* key;           // The string key
+    int value;           // The integer value
+    struct Node* next;   // Pointer to the next node in the chain
+} Node;
+
+// 2. Hash Map Structure
+typedef struct {
+    Node* buckets[CAPACITY]; // Array of pointers to the head of each linked list (chain)
+} HashMap;
+
+
+// --- Core Functions ---
+
+// 1. Hash Function (h(k))
+// A simple, effective string hashing function (djb2 algorithm) followed by modulo.
+unsigned int hash_function(const char* key) {
+    unsigned long hash = 5381; // Initial seed value
+    int c;
+
+    // Iterate through the string, updating the hash
+    while ((c = *key++)) {
+        // hash * 33 + c
+        hash = ((hash << 5) + hash) + c; 
+    }
+
+    // Apply modulo to ensure the index is within the array bounds [0, CAPACITY - 1]
+    return hash % CAPACITY;
+}
+
+// 2. Initialization Function
+HashMap* create_map() {
+    HashMap* map = (HashMap*)malloc(sizeof(HashMap));
+    if (map == NULL) {
+        perror("Failed to allocate memory for HashMap");
+        exit(EXIT_FAILURE);
+    }
+    // Initialize all bucket pointers to NULL (empty chains)
+    for (int i = 0; i < CAPACITY; i++) {
+        map->buckets[i] = NULL;
+    }
+    return map;
+}
+
+// 3. Set Function (Insert/Update)
+void set(HashMap* map, const char* key, int value) {
+    // 1. Find the bucket index using the hash function
+    unsigned int index = hash_function(key);
+    
+    // Start iterating the chain at the calculated bucket index
+    Node* current = map->buckets[index];
+
+    // Search for an existing key (Update if found)
+    while (current != NULL) {
+        if (strcmp(current->key, key) == 0) {
+            // Key found: Replace old entry with the new value
+            current->value = value;
+            return;
+        }
+        current = current->next;
+    }
+
+    // If we reach here, the key is new. Create a new entry.
+
+    // Allocate memory for the new node
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        perror("Failed to allocate memory for Node");
+        return;
+    }
+
+    // Allocate and copy the key string
+    newNode->key = strdup(key);
+    if (newNode->key == NULL) {
+        free(newNode);
+        perror("Failed to allocate memory for key");
+        return;
+    }
+    
+    // Set value
+    newNode->value = value;
+    
+    // Insert the new node at the beginning of the chain (Add new entry)
+    newNode->next = map->buckets[index];
+    map->buckets[index] = newNode;
+}
+
+// 4. Get Function (Lookup)
+// Returns the value if key is found, otherwise -1 (or a custom error indicator).
+int get(HashMap* map, const char* key) {
+    // 1. Find the bucket index
+    unsigned int index = hash_function(key);
+    
+    // Start iterating the chain
+    Node* current = map->buckets[index];
+    
+    // Search for the key
+    while (current != NULL) {
+        if (strcmp(current->key, key) == 0) {
+            // Key found: return the value
+            return current->value;
+        }
+        current = current->next;
+    }
+
+    // Key not found: simulate "key error" by returning a special value
+    return -1; 
+}
+
+// 5. Cleanup Function
+void destroy_map(HashMap* map) {
+    for (int i = 0; i < CAPACITY; i++) {
+        Node* current = map->buckets[i];
+        while (current != NULL) {
+            Node* temp = current;
+            current = current->next;
+            free(temp->key); // Free the dynamically allocated key string
+            free(temp);      // Free the node itself
+        }
+    }
+    free(map); // Free the HashMap structure
+}
+
+
+// --- Main Demonstration ---
+
+int main() {
+    printf("--- Hash Map Implementation (Separate Chaining) ---\n");
+    
+    // Create the map
+    HashMap* my_map = create_map();
+
+    // The key-to-index mapping:
+    // "apple" -> hash_function("apple") % 10 = 1
+    // "banana" -> hash_function("banana") % 10 = 6
+    // "pear" -> hash_function("pear") % 10 = 1 (Collision with "apple"!)
+
+    // 1. Insertion (Set)
+    set(my_map, "apple", 100);
+    set(my_map, "banana", 200);
+    set(my_map, "cherry", 300);
+    set(my_map, "pear", 400); // Collision with "apple" at index 1
+
+    printf("\n--- Insertions Complete ---\n");
+    
+    // 2. Retrieval (Get)
+    printf("Value of 'apple': %d\n", get(my_map, "apple")); // Found
+    printf("Value of 'pear': %d\n", get(my_map, "pear"));   // Found (despite collision)
+    printf("Value of 'banana': %d\n", get(my_map, "banana")); // Found
+    printf("Value of 'grape': %d (Expected -1 for not found)\n", get(my_map, "grape")); // Not Found
+
+    // 3. Update (Set existing key)
+    set(my_map, "apple", 150);
+    printf("\n--- Update 'apple' to 150 ---\n");
+    printf("New value of 'apple': %d\n", get(my_map, "apple")); // Should be 150
+
+    // 4. Inspecting the Buckets (Manual check of chaining)
+    printf("\n--- Internal Bucket Check (Capacity: %d) ---\n", CAPACITY);
+    for (int i = 0; i < CAPACITY; i++) {
+        Node* current = my_map->buckets[i];
+        if (current) {
+            printf("Bucket %d:", i);
+            while (current) {
+                printf(" -> ('%s': %d)", current->key, current->value);
+                current = current->next;
+            }
+            printf("\n");
+        }
+    }
+    
+    // 5. Cleanup
+    destroy_map(my_map);
+    printf("\nMemory cleaned up.\n");
+
+    return 0;
+}
+
 ############################################################
+
+class Point:
+    def __init__(self, x, y):
+        # We make the attributes private and treat them as immutable for hashing
+        self._x = x
+        self._y = y
+
+    # The custom hash function
+    def __hash__(self):
+        # We hash the Point object by combining the hashes of its components (x and y).
+        # We use a tuple (self._x, self._y) because tuples are reliably hashable.
+        return hash((self._x, self._y))
+
+    # To ensure it works as a key, you must also define __eq__
+    def __eq__(self, other):
+        if not isinstance(other, Point):
+            return NotImplemented
+        return self._x == other._x and self._y == other._y
+
+p1 = Point(5, 10)
+p2 = Point(5, 10) # A different object instance, but equal state
+p3 = Point(1, 1)
+
+print(f"\nHash of p1: {hash(p1)}")
+print(f"Hash of p2: {hash(p2)}") # Should be the same as p1
+print(f"Hash of p3: {hash(p3)}")
+
+# p1 can now be used as a key in a dictionary
+my_dict = {p1: "Start Point"}
+print(my_dict[p2]) # Output: Start Point (p2 successfully finds p1's value because they have the same hash and are equal)
 ############################################################
