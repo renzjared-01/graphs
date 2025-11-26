@@ -307,13 +307,143 @@ def quickselect(A: List[Any], k: int) -> Any:
     return _qs(0, n - 1)
 
 
+# 25 ###########################################################
+# five points in line
+from random import sample
+
+from dataclasses import dataclass
+from fractions import Fraction
+
+
+@dataclass(frozen=True)
+class Point[T: (int, float, Fraction)]:
+    # floating-point is evil
+    x: T
+    y: T
+    # z: int
+
+    def __sub__(self, p: "Point") -> "Vec2D":
+        return Vec2D(self, p)
+
+
+class Vec2D:
+    def __init__(self, p2: Point, p1: Point = Point(0, 0)):
+        self.x = p2.x - p1.x
+        self.y = p2.y - p1.y
+        super().__init__()
+
+    def __add__(self, v: "Vec2D") -> "Vec2D":
+        return Vec2D(
+            Point(self.x + v.x, self.y + v.y)
+        )
+
+    def __radd__(self, v: "Vec2D") -> "Vec2D":
+        return self.__add__(v)
+
+    def __sub__(self, v: "Vec2D") -> "Vec2D":
+        return Vec2D(
+            Point(self.x - v.x, self.y - v.y)
+        )
+
+    def __rmul__(self, s: int) -> "Vec2D":
+        return Vec2D(Point(s * self.x, s * self.y))
+
+    def mag2(self) -> int:
+        return self.x**2 + self.y**2
+
+    def dot(self, v: "Vec2D") -> int:
+        return self.x * v.x + self.y * v.y
+
+    def cross(self, v: "Vec2D") -> int:
+        return self.x * v.y - self.y * v.x
+
+
+points_with_answer = [
+    (4, 4), (-1, -18), (8, -14), (-3, 20), (7, 5),
+    (16, -3), (-9, -13), (-14, -19), (-2, -17), (6, 8),
+    (-11, -3), (-9, 6), (-3, 2), (-15, -4), (0, -17),
+    (11, 13), (8, -13), (10, 7), (3, -7), (18, -6),
+    (19, -3), (0, -13), (4, -5),
+    (4, 7), (6, 7)
+]
+points_with_no_answer = [
+    (4, 4), (-1, -18), (8, -14), (-3, 20), (7, 5),
+    (16, -3), (-9, -13), (-14, -19), (-2, -17), (6, 8),
+    (-11, -3), (-9, 6), (-3, 2), (-15, -4), (0, -17),
+    (11, 13), (8, -13), (10, 7), (3, -7), (18, -6),
+    (19, -3), (0, -13), (4, -500), # (4, -5),
+    (4, 7), (6, 7)
+]
+
+def find_line_brute(points):
+    pts = [Point(*p) for p in points]
+    n = len(pts)
+    for i in range(n):
+        for j in range(i + 1, n):
+            p_i = pts[i]
+            p_j = pts[j]
+            count = 0
+            for k in range(n):
+                p_k = pts[k]
+                v1 = p_j - p_i
+                v2 = p_k - p_i
+                # collinear check
+                if v1.cross(v2) == 0:
+                    count += 1
+            if count * 5 >= n:
+                return (p_i, p_j)
+    return None
+
+
+def find_line_lasvegas(points):
+    pts = [Point(*p) for p in points]
+    attempts = 0
+    while True:
+        attempts += 1
+        p1, p2 = sample(pts, 2)
+        count = 0
+        for p3 in pts:
+            v1 = p3 - p1
+            v2 = p3 - p2
+            if v1.cross(v2) == 0:
+                count += 1
+        if count >= len(pts) / 5:
+            return attempts, (p1, p2)
+
+
+def find_line_mc(points):
+    pts = [Point(*p) for p in points]
+    attempts = 0
+    K = 2000
+    for _ in range(K):
+        attempts += 1
+        p1, p2 = sample(pts, 2)
+        count = 0
+        for p3 in pts:
+            v1 = p3 - p1
+            v2 = p3 - p2
+            if v1.cross(v2) == 0:
+                count += 1
+        if count >= len(pts) / 5:
+            return attempts, (p1, p2)
+    return attempts, None
+
+
+num_attempts, ans = find_line_lasvegas(points_with_answer)
+print(num_attempts, ans)
+num_attempts, ans = find_line_mc(points_with_answer)
+print(num_attempts, ans)
+num_attempts, ans = find_line_mc(points_with_no_answer)
+print(num_attempts, ans)
+
+############################################################
+############################################################
 ############################################################
 
-# 25 ###########################################################
-############################################################
-############################################################
-############################################################
+
 # 26 ###########################################################
+
+
 ############################################################
 ############################################################
 ############################################################
