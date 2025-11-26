@@ -260,6 +260,54 @@ for i in vals:
     print(sl)
     print('---')
 
+############################################################
+# Order Statistics
+# Given an array a of length n, and k such that 0 ≤ k < n, find the
+# element at index k when it is sorted.
+
+from random import randint
+from typing import List, Any
+
+def partition(A: List[Any], l: int, r: int) -> int:
+    """Lomuto partition: pivot = A[r]; returns pivot final index."""
+    pivot = A[r]
+    i = l - 1
+    for j in range(l, r):
+        if A[j] <= pivot:
+            i += 1
+            A[i], A[j] = A[j], A[i]
+    A[i+1], A[r] = A[r], A[i+1]
+    return i + 1
+
+def quickselect(A: List[Any], k: int) -> Any:
+    """
+    Return the element that would be at index k if A were sorted (0-based).
+    This modifies A in-place. Expected O(n) time (randomized).
+    Raises IndexError if k is out of bounds.
+    """
+    n = len(A)
+    if not (0 <= k < n):
+        raise IndexError("k out of bounds")
+
+    def _qs(l: int, r: int) -> Any:
+        if l == r:
+            return A[l]
+        # random pivot to avoid worst-case
+        pivot_idx = randint(l, r)
+        A[pivot_idx], A[r] = A[r], A[pivot_idx]
+        p = partitiono(A, l, r)
+        # p is pivot final index
+        if k == p:
+            return A[p]
+        elif k < p:
+            return _qs(l, p - 1)
+        else:
+            return _qs(p + 1, r)
+
+    return _qs(0, n - 1)
+
+
+############################################################
 
 # 25 ###########################################################
 ############################################################
