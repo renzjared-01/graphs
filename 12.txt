@@ -1,0 +1,200 @@
+############################################################
+from random import randint
+
+def partition(A, l, r):
+    pivot = A[r]
+    i = l - 1
+    for j in range(l, r):
+        if A[j] <= pivot:
+            i += 1
+            A[i], A[j] = A[j], A[i]
+    A[i + 1], A[r] = A[r], A[i + 1]
+    return i + 1
+
+
+def _quicksort(A, l, r):
+    if l < r:
+        m = partition(A, l, r)
+        _quicksort(A, l, m - 1)
+        _quicksort(A, m + 1, r)
+    return A
+
+def quicksort1(A, l, r):
+    A = list(A)
+    return _quicksort(A, l, r)
+
+
+def _randomized_quicksort(A, l, r):
+    if l < r:
+        pivot = randint(l, r)
+        A[pivot], A[r] = A[r], A[pivot]
+        m = partition(A, l, r)
+        _randomized_quicksort(A, l, m - 1)
+        _randomized_quicksort(A, m + 1, r)
+    return A
+
+def randomized_quicksort(A, l, r):
+    A = list(A)
+    return _randomized_quicksort(A, l, r)
+
+
+li = (3, 1, 4, 2, 5, 7)
+res = randomized_quicksort(li, 0, len(li) - 1)
+print(res)
+
+####
+
+
+############################################################
+from dataclasses import dataclass
+from random import randint, choice, shuffle
+
+@dataclass
+class Node:
+    val: int | float
+    up: "Node | None" = None
+    down: "Node | None" = None
+    left: "Node | None" = None
+    right: "Node | None" = None
+
+    def is_rightmost(self):
+        return self.right is None
+
+    def is_bottommost(self):
+        return self.down is None
+
+    def __repr__(self):
+        return str(self.val)
+
+
+class SkipList:
+    def __init__(self, vals=()):
+        self.levels = [self.create_sentinel()]
+        self.size = 0
+        self.cap = 5
+        for v in vals:
+            self.insert(v)
+        super().__init__()
+
+    def __len__(self):
+        return self.size
+
+    def __str__(self):
+        ss = []
+        for idx, s in enumerate(self.levels):
+            l = [f'{idx}:']
+            t = s
+            while t is not None:
+                l.append(str(t))
+                t = t.right
+            ss.append(' '.join(l))
+        return '\n'.join(ss)
+
+    def _will_promote(self):
+        return choice((True, False))
+
+    def create_sentinel(self):
+        return Node(float('-inf'))
+
+    def find(self, val):
+        curr = self.levels[-1]
+        self._chain = list()
+
+        for _ in range(len(self.levels)):
+            # go right as much as possible at current level
+            while not curr.is_rightmost() and val >= curr.right.val:
+                curr = curr.right
+            self._chain.append(curr)
+
+            # go down next level if possible
+            if not curr.is_bottommost():
+                curr = curr.down
+
+        self._chain = self._chain[::-1]
+        return val == curr.val
+
+    def insert(self, val):
+
+        def insert_and_repoint(node, left, right, down=None):
+            node.left = left
+            node.right = right
+            left.right = node
+            if right is not None:
+                right.left = node
+            if down is not None:
+                node.down = down
+                down.up = node
+
+        found = self.find(val)
+        lvl = 0
+        left = self._chain[lvl]
+        if not found:
+            self.size += 1
+            new = Node(val)
+            insert_and_repoint(new, left, left.right)
+
+            while self._will_promote():
+                lvl += 1
+                # if lvl >= self.cap:
+                #     break
+                if lvl == len(self.levels):
+                    sentinel = self.levels[-1]
+                    sentinel_up = self.create_sentinel()
+                    sentinel.up = sentinel_up
+                    sentinel_up.down = sentinel
+                    self.levels.append(sentinel_up)
+
+                    new_up = Node(val)
+                    insert_and_repoint(
+                        new_up, sentinel_up, sentinel_up.right,
+                        down=new
+                    )
+
+                    new = new_up
+                else:
+                    left = self._chain[lvl]
+
+                    new_up = Node(val)
+                    insert_and_repoint(
+                        new_up, left, left.right,
+                        down=new
+                    )
+
+                    new = new_up
+
+    def delete(self, val):
+        found = self.find(val)
+        if found:
+            self.size -= 1
+            node = self._chain[0]
+            while node is not None:
+                left, right = node.left, node.right
+                left.right = right
+                if right is not None:
+                    right.left = left
+                node = node.up
+        return found
+
+
+sl = SkipList()
+vals = [*range(1, 21)]
+shuffle(vals)
+for i in vals:
+    sl.insert(i)
+print(sl)
+print('deletes')
+for i in vals:
+    print(i)
+    sl.delete(i)
+    print(sl)
+    print('---')
+
+
+############################################################
+############################################################
+############################################################
+############################################################
+############################################################
+############################################################
+############################################################
+############################################################
