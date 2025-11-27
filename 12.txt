@@ -818,3 +818,196 @@ print(f"Hash of p3: {hash(p3)}")
 my_dict = {p1: "Start Point"}
 print(my_dict[p2]) # Output: Start Point (p2 successfully finds p1's value because they have the same hash and are equal)
 ############################################################
+
+
+// skiplist.c
+// Simple skip list (set of int keys) implementation in C.
+// Compile: gcc -O2 skiplist.c -o skiplist
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <limits.h>
+
+#define MAX_LEVEL 32
+#define P 0.5
+
+typedef struct SkipNode {
+    int key;
+    int level;                  // node's level (1..level)
+    // forward pointers follow in memory: forward[0]..forward[level-1]
+    struct SkipNode *forward[]; // flexible array member
+} SkipNode;
+
+typedef struct SkipList {
+    int level;      // current highest level (1..MAX_LEVEL)
+    int size;       // number of elements
+    SkipNode *header;
+} SkipList;
+
+// Helper: allocate a node with given level and key
+static SkipNode *skipnode_new(int level, int key) {
+    SkipNode *node = malloc(sizeof(SkipNode) + sizeof(SkipNode *) * level);
+    if (!node) {
+        fprintf(stderr, "malloc failed\n");
+        exit(1);
+    }
+    node->key = key;
+    node->level = level;
+    for (int i = 0; i < level; ++i) node->forward[i] = NULL;
+    return node;
+}
+
+// Random level generator (geometric distribution, p = 0.5)
+static int random_level(void) {
+    int lvl = 1;
+    // flip coin while less than MAX_LEVEL
+    while (((double)rand() / RAND_MAX) < P && lvl < MAX_LEVEL)
+        lvl++;
+    return lvl;
+}
+
+// Create empty skip list
+SkipList *skiplist_create(void) {
+    srand((unsigned)time(NULL) ^ (uintptr_t)&random_level);
+    SkipList *sl = malloc(sizeof(SkipList));
+    if (!sl) { fprintf(stderr, "malloc failed\n"); exit(1); }
+    sl->level = 1;
+    sl->size = 0;
+    // header sentinel with -inf key
+    sl->header = skipnode_new(MAX_LEVEL, INT_MIN);
+    return sl;
+}
+
+int skiplist_size(SkipList *sl) {
+    return sl->size;
+}
+
+// Search membership
+int skiplist_contains(SkipList *sl, int key) {
+    SkipNode *x = sl->header;
+    // start from top level, go down
+    for (int i = sl->level - 1; i >= 0; --i) {
+        while (x->forward[i] && x->forward[i]->key < key) {
+            x = x->forward[i];
+        }
+    }
+    x = x->forward[0];
+    return x && x->key == key;
+}
+
+// Insert (no duplicates). Returns 1 if inserted, 0 if already present.
+int skiplist_insert(SkipList *sl, int key) {
+    SkipNode *update[MAX_LEVEL];
+    SkipNode *x = sl->header;
+    for (int i = sl->level - 1; i >= 0; --i) {
+        while (x->forward[i] && x->forward[i]->key < key) {
+            x = x->forward[i];
+        }
+        update[i] = x;
+    }
+    x = x->forward[0];
+    if (x && x->key == key) {
+        // already present
+        return 0;
+    } else {
+        int lvl = random_level();
+        if (lvl > sl->level) {
+            // initialize new levels in update[] with header
+            for (int i = sl->level; i < lvl; ++i) update[i] = sl->header;
+            sl->level = lvl;
+        }
+        x = skipnode_new(lvl, key);
+        for (int i = 0; i < lvl; ++i) {
+            x->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = x;
+        }
+        sl->size++;
+        return 1;
+    }
+}
+
+// Remove key. Returns 1 if removed, 0 if not found.
+int skiplist_remove(SkipList *sl, int key) {
+    SkipNode *update[MAX_LEVEL];
+    SkipNode *x = sl->header;
+    for (int i = sl->level - 1; i >= 0; --i) {
+        while (x->forward[i] && x->forward[i]->key < key) {
+            x = x->forward[i];
+        }
+        update[i] = x;
+    }
+    x = x->forward[0];
+    if (!x || x->key != key) return 0;
+    // unlink x at each level
+    for (int i = 0; i < sl->level; ++i) {
+        if (update[i]->forward[i] == x) {
+            update[i]->forward[i] = x->forward[i];
+        } else {
+            // at higher levels, x may not be present
+        }
+    }
+    free(x);
+    // decrease level if top levels are empty
+    while (sl->level > 1 && sl->header->forward[sl->level - 1] == NULL)
+        sl->level--;
+    sl->size--;
+    return 1;
+}
+
+// Print skip list levels (for debugging)
+void skiplist_print(SkipList *sl) {
+    printf("SkipList (size=%d, level=%d)\n", sl->size, sl->level);
+    for (int i = sl->level - 1; i >= 0; --i) {
+        SkipNode *x = sl->header->forward[i];
+        printf("L%d: ", i+1);
+        while (x) {
+            printf("%d ", x->key);
+            x = x->forward[i];
+        }
+        printf("\n");
+    }
+}
+
+// Free skip list
+void skiplist_free(SkipList *sl) {
+    // free all nodes on bottom level
+    SkipNode *x = sl->header->forward[0];
+    while (x) {
+        SkipNode *next = x->forward[0];
+        free(x);
+        x = next;
+    }
+    free(sl->header);
+    free(sl);
+}
+
+// Example test main
+#ifdef SKIPLIST_MAIN
+int main(void) {
+    SkipList *sl = skiplist_create();
+    int arr[] = {5, 2, 7, 1, 9, 3, 6, 4, 8};
+    for (int i = 0; i < (int)(sizeof(arr)/sizeof(arr[0])); ++i) {
+        skiplist_insert(sl, arr[i]);
+    }
+    skiplist_print(sl);
+
+    printf("contains 4? %d\n", skiplist_contains(sl, 4));
+    printf("remove 4 -> %d\n", skiplist_remove(sl, 4));
+    printf("contains 4? %d\n", skiplist_contains(sl, 4));
+    skiplist_print(sl);
+
+    printf("insert 4 -> %d\n", skiplist_insert(sl, 4));
+    skiplist_print(sl);
+
+    // remove all
+    for (int k = 1; k <= 9; ++k) {
+        skiplist_remove(sl, k);
+        skiplist_print(sl);
+    }
+
+    skiplist_free(sl);
+    return 0;
+}
+#endif
+
