@@ -246,6 +246,83 @@ class SkipList:
                 node = node.up
         return found
 
+#####
+
+    def _make_empty_levels(self, h):
+        """Return a list of h new sentinel nodes, bottom-first, linked with up/down."""
+        levels = [self.create_sentinel() for _ in range(h)]
+        # link up/down
+        for i in range(len(levels)-1):
+            levels[i].up = levels[i+1]
+            levels[i+1].down = levels[i]
+        return levels
+
+    def _trim_levels(self):
+        """Remove top levels that have no real nodes (keep at least one level)."""
+        # remove topmost levels while there's more than one level and top sentinel has no right node
+        while len(self.levels) > 1 and self.levels[-1].right is None:
+            top = self.levels.pop()
+            below = self.levels[-1]
+            below.up = None
+            top.down = None  # help GC (optional)
+
+    def _count_bottom(self):
+        """Count nodes on bottom level (not counting sentinel)."""
+        cnt = 0
+        cur = self.levels[0].right
+        while cur is not None:
+            cnt += 1
+            cur = cur.right
+        return cnt
+
+    def split(self, val):
+        """
+        Split the skiplist into (left, right) where:
+          - left contains all elements <= val
+          - right contains all elements > val
+        This modifies self to be the left list and returns a new SkipList for the right side.
+        """
+        # ensure chain of predecessors is available for each level
+        self.find(val)  # sets self._chain with bottom-first order: _chain[0] = bottom predecessor
+        preds = self._chain[:]  # bottom-first list of predecessor nodes, one per level
+
+        h = len(self.levels)
+        # create new SkipList for right part but with empty level sentinels
+        right = SkipList()
+        # create exactly h levels bottom-first
+        right.levels = self._make_empty_levels(h)
+
+        # For each level i (bottom=0 .. top=h-1):
+        for i in range(h):
+            pred = preds[i]
+            # the node that will be head.right at this level for the right list
+            right_head = pred.right
+
+            # detach right part from pred (left keeps pred.right = None)
+            pred.right = None
+
+            # link right sentinel at this level to the old right_head
+            right_sentinel = right.levels[i]
+            right_sentinel.right = right_head
+            if right_head is not None:
+                right_head.left = right_sentinel
+
+        # Now link vertical pointers for the new right's sentinels already done in _make_empty_levels
+
+        # Fix any dangling left pointers for the left list top-level sentinels (their right is None already)
+        # (No extra action required; we already set pred.right = None.)
+
+        # Fix sizes by counting bottom level for both lists (O(k) in nodes in each half)
+        right.size = right._count_bottom()
+        self.size = self._count_bottom()
+
+        # Trim empty top levels from both lists (remove levels with no right nodes)
+        self._trim_levels()
+        right._trim_levels()
+
+        return right
+
+
 
 sl = SkipList()
 vals = [*range(1, 21)]
