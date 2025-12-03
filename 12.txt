@@ -1,3 +1,218 @@
+# 27 #############################################################
+# Birthday
+from math import ceil, log, log2
+
+def bits_to_avoid_birthday(n: int, p_target: float = 1e-9) -> int:
+    """
+    Compute minimum k such that collision probability among n items <= p_target.
+    """
+    if n <= 1:
+        return 1
+    if not (0 < p_target < 1):
+        raise ValueError("p_target must be between 0 and 1 (exclusive)")
+    denom = -log(1.0 - p_target)
+    numerator = n * (n - 1)
+    value = numerator / (2.0 * denom)
+    if value <= 1.0:
+        return 1
+    return ceil(log2(value))
+
+###########################################################
+# Linear Time Median
+def select_kth(arr, k):
+    """
+    Returns the k-th smallest element (0-indexed) in arr.
+    Uses the Median of Medians algorithm for guaranteed O(n) time.
+    """
+    if len(arr) == 1:
+        return arr[0]
+
+    # Step 1: Split into groups of 5 and compute medians
+    chunks = [arr[i:i+5] for i in range(0, len(arr), 5)]
+    medians = [sorted(chunk)[len(chunk)//2] for chunk in chunks]
+
+    # Step 2: Recursively find pivot = median of medians
+    pivot = select_kth(medians, len(medians)//2) if len(medians) > 1 else medians[0]
+
+    # Step 3: Partition around pivot
+    lows   = [x for x in arr if x < pivot]
+    highs  = [x for x in arr if x > pivot]
+    pivots = [x for x in arr if x == pivot]  # can be multiple equal elements
+
+    # Step 4: Recurse into correct partition
+    if k < len(lows):
+        return select_kth(lows, k)
+    elif k < len(lows) + len(pivots):
+        return pivot
+    else:
+        return select_kth(highs, k - len(lows) - len(pivots))
+
+
+def median_linear(arr):
+    """
+    Returns the median in guaranteed linear time.
+    Works for odd and even-length arrays.
+    """
+    n = len(arr)
+    if n == 0:
+        raise ValueError("Cannot take median of empty array")
+
+    if n % 2 == 1:
+        return select_kth(arr, n // 2)
+    else:
+        # average of the two middle elements
+        left  = select_kth(arr, n//2 - 1)
+        right = select_kth(arr, n//2)
+        return 0.5 * (left + right)
+
+
+
+###########################################################
+# HashTable
+# Creating and demonstrating a simple hash table that assigns a random integer "hash" to each key.
+# This implementation uses chaining (lists) for collision resolution and keeps the random
+# integer assigned to each key fixed for the lifetime of the table (or until the key is removed).
+# The random generator can be seeded for reproducible behavior.
+
+import random
+from typing import Any, List, Tuple, Optional
+
+class RandomHashTable:
+    def __init__(self, capacity: int = 8, seed: Optional[int] = None):
+        if capacity <= 0:
+            raise ValueError("capacity must be positive")
+        self._capacity = capacity
+        self._buckets: List[List[Tuple[Any, Any]]] = [[] for _ in range(capacity)]
+        self._size = 0
+        self._rand = random.Random(seed)
+        # mapping from key -> assigned random integer (keeps hash stable while key exists)
+        self._key_to_rand: dict = {}
+
+    def _assign_hash(self, key: Any) -> int:
+        if key in self._key_to_rand:
+            return self._key_to_rand[key]
+        # choose a 31-bit non-negative random integer
+        code = self._rand.randint(0, 2**31 - 1)
+        self._key_to_rand[key] = code
+        return code
+
+    def _index(self, key: Any) -> int:
+        # compute index using assigned random integer
+        return self._assign_hash(key) % self._capacity
+
+    def _find_in_bucket(self, bucket: List[Tuple[Any, Any]], key: Any) -> int:
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                return i
+        return -1
+
+    def put(self, key: Any, value: Any) -> None:
+        idx = self._index(key)
+        bucket = self._buckets[idx]
+        i = self._find_in_bucket(bucket, key)
+        if i >= 0:
+            bucket[i] = (key, value)
+        else:
+            bucket.append((key, value))
+            self._size += 1
+            # resize if load factor > 0.75
+            if self._size / self._capacity > 0.75:
+                self._resize(self._capacity * 2)
+
+    def get(self, key: Any) -> Any:
+        idx = self._index(key)
+        bucket = self._buckets[idx]
+        i = self._find_in_bucket(bucket, key)
+        if i >= 0:
+            return bucket[i][1]
+        raise KeyError(f"Key not found: {key}")
+
+    def delete(self, key: Any) -> None:
+        if key not in self._key_to_rand:
+            raise KeyError(f"Key not found: {key}")
+        idx = self._index(key)
+        bucket = self._buckets[idx]
+        i = self._find_in_bucket(bucket, key)
+        if i >= 0:
+            bucket.pop(i)
+            self._size -= 1
+            # remove assigned random so a future new insertion of same key gets a new random
+            del self._key_to_rand[key]
+            # optionally shrink capacity (not strictly necessary)
+            if self._capacity > 8 and self._size / self._capacity < 0.2:
+                self._resize(max(8, self._capacity // 2))
+        else:
+            raise KeyError(f"Key not found: {key}")
+
+    def contains(self, key: Any) -> bool:
+        try:
+            idx = self._index(key)
+            bucket = self._buckets[idx]
+            return self._find_in_bucket(bucket, key) >= 0
+        except Exception:
+            return False
+
+    def hash_of(self, key: Any) -> Optional[int]:
+        """Return the assigned random integer for a key, or None if not present."""
+        return self._key_to_rand.get(key, None)
+
+    def _resize(self, new_capacity: int) -> None:
+        # re-distribute entries into new buckets using existing assigned random integers
+        old_items = list(self.items())
+        self._capacity = new_capacity
+        self._buckets = [[] for _ in range(new_capacity)]
+        self._size = 0
+        for k, v in old_items:
+            # when reinserting, we won't change the random assigned code for keys
+            idx = self._assign_hash(k) % self._capacity
+            self._buckets[idx].append((k, v))
+            self._size += 1
+
+    def items(self):
+        for bucket in self._buckets:
+            for k, v in bucket:
+                yield (k, v)
+
+    def __len__(self):
+        return self._size
+
+    def __repr__(self):
+        lines = [f"RandomHashTable(capacity={self._capacity}, size={self._size})"]
+        for i, bucket in enumerate(self._buckets):
+            if bucket:
+                lines.append(f"  [{i}]: " + ", ".join(f"{k!r}:{v!r}" for k, v in bucket))
+        return "\n".join(lines)
+
+# Demonstration of usage
+if __name__ == "__main__":
+    ht = RandomHashTable(seed=42)  # seed makes random assignment reproducible for demo
+    keys = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape"]
+
+    print("Inserting items:")
+    for i, k in enumerate(keys, start=1):
+        ht.put(k, f"val_{i}")
+        print(f"  inserted {k!r} -> {ht.get(k)!r}, assigned_hash={ht.hash_of(k)}")
+
+    print("\nHash table internal state:")
+    print(ht)
+
+    print("\nAccess some keys:")
+    print("  get('banana'):", ht.get("banana"))
+    print("  contains('mango'):", ht.contains("mango"))
+
+    print("\nDelete 'date' and re-insert it (gets a new random hash):")
+    old_hash = ht.hash_of("date")
+    ht.delete("date")
+    print("  removed. old_hash:", old_hash, "contains now:", ht.contains("date"))
+    ht.put("date", "new_val_date")
+    print("  re-inserted 'date' assigned_hash:", ht.hash_of("date"), "value:", ht.get("date"))
+
+    print("\nFinal table:")
+    print(ht)
+
+# 28 ###########################################################
+
+
 # 24 ###########################################################
 from random import randint
 
