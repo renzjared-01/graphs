@@ -283,6 +283,43 @@ int main() {
 
 ###############################################################
 
+def bucket_sort_by_digit(arr, digit_pos):
+    """
+    Stable bucket sort that groups numbers by the digit at digit_pos.
+    digit_pos = 0 → ones place
+    digit_pos = 1 → tens place
+    etc.
+    """
+    # 10 buckets for digits 0–9
+    buckets = [[] for _ in range(10)]
+
+    for num in arr:
+        digit = (num // (10 ** digit_pos)) % 10
+        buckets[digit].append(num)
+
+    # Concatenate buckets in digit order
+    output = []
+    for bucket in buckets:
+        output.extend(bucket)
+    return output
+
+
+def radix_sort(arr):
+    """
+    LSD Radix Sort for non-negative integers.
+    Returns a new sorted list.
+    """
+    if not arr:
+        return []
+
+    # Find number of digits in the largest number
+    max_digits = len(str(max(arr)))
+
+    output = arr[:]
+    for digit_pos in range(0, max_digits):
+        output = bucket_sort_by_digit(output, digit_pos)
+
+    return output
 
 
 # 24 ###########################################################
