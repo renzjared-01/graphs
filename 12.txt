@@ -211,6 +211,78 @@ if __name__ == "__main__":
     print(ht)
 
 # 28 ###########################################################
+# Linear Time Sorting
+def counting_sort(arr):
+    if not arr:
+        return []
+
+    # Find the maximum value to know the count array size
+    max_val = max(arr)
+
+    # Step 1: Count occurrences
+    count = [0] * (max_val + 1)
+    for x in arr:
+        count[x] += 1
+
+    # Step 2: Build sorted array
+    output = []
+    for value, freq in enumerate(count):
+        output.extend([value] * freq)
+
+    return output
+
+###############################################################
+#include <stdio.h>
+#include <stdlib.h>
+
+void counting_sort(int arr[], int n) {
+    if (n <= 0) return;
+
+    // Step 1: Find max value
+    int max_val = arr[0];
+    for (int i = 1; i < n; i++) {
+        if (arr[i] > max_val)
+            max_val = arr[i];
+    }
+
+    // Step 2: Allocate and zero-initialize count array
+    int *count = calloc(max_val + 1, sizeof(int));
+    if (!count) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return;
+    }
+
+    // Step 3: Count each value
+    for (int i = 0; i < n; i++) {
+        count[arr[i]]++;
+    }
+
+    // Step 4: Write sorted output back into arr
+    int index = 0;
+    for (int value = 0; value <= max_val; value++) {
+        while (count[value]-- > 0) {
+            arr[index++] = value;
+        }
+    }
+
+    free(count);
+}
+
+int main() {
+    int arr[] = {4, 2, 2, 8, 3, 3, 1};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    counting_sort(arr, n);
+
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+
+    return 0;
+}
+
+###############################################################
+
 
 
 # 24 ###########################################################
