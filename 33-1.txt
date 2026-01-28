@@ -1,1 +1,112 @@
+# MST
+## Prim's
+from heapq import heappush, heappop
 
+def make_adj(n, edges):
+    adj = [[] for _ in range(n)]
+    for edge in edges:
+        i, j, c = edge
+        adj[i].append((j, c, edge))
+        adj[j].append((i, c, edge))
+    return adj
+
+def mst(n, edges):
+    adj = make_adj(n, edges)
+
+    vis = [False]*n
+    start = 0
+    pq = [(0, start, None)]
+    tree = []
+    while pq:
+        d, i, edge = heappop(pq)
+        if vis[i]:
+            continue
+        if edge is not None:
+            tree.append(edge)
+        vis[i] = True
+        for j, c, edge in adj[i]:
+            heappush(pq, (c, j, edge))
+    return tree
+
+def mst_cost(n, edges):
+    return sum(c for i, j, c in mst(n, edges))
+
+def main():
+    print(mst(5, [
+        (0, 1, 2),
+        (0, 4, 6),
+        (1, 4, 4),
+        (2, 4, 1),
+        (2, 1, 7),
+        (2, 3, 8),
+        (4, 3, 5),
+    ]))
+
+if __name__ == '__main__':
+    main()
+
+## Kruskal's
+from random import getrandbits
+
+class UnionFind:
+    def __init__(self, n):
+        self.p = [-1]*n
+        super().__init__()
+
+    def __getitem__(self, i):
+        if self.p[i] < 0:
+            return i
+        else:
+            self.p[i] = self[self.p[i]]
+            return self.p[i]
+
+    def union(self, i, j):
+        if (i := self[i]) == (j := self[j]):
+            return False
+
+        if getrandbits(1) == 0:  # union by random
+            i, j = j, i
+        self.p[i] = j
+        return True
+
+
+def mst(n, edges):
+    comps = UnionFind(n)
+    def key(edge):
+        i, j, c = edge
+        return c
+
+    tree = []
+    for i, j, c in sorted(edges, key=key):
+        if comps[i] != comps[j]:
+            tree.append((i, j, c))
+            comps.union(i, j)
+
+    return tree
+
+
+def mst_cost(n, edges):
+    return sum(c for i, j, c in mst(n, edges))
+
+
+def main():
+    print(mst(5, [
+        (0, 1, 2),
+        (0, 4, 6),
+        (1, 4, 4),
+        (2, 4, 1),
+        (2, 1, 7),
+        (2, 3, 8),
+        (4, 3, 5),
+    ]))
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+# Shortest Path
+##
+##
+##
