@@ -104,9 +104,153 @@ def main():
 if __name__ == '__main__':
     main()
 
+## PRoblem 1
+import sys
+input = sys.stdin.readline
+
+n = int(input())
+
+x = [0] * n
+y = [0] * n
+c = [0] * n
+k = [0] * n
+
+for i in range(n):
+    x[i], y[i] = map(int, input().split())
+
+c = list(map(int, input().split()))
+k = list(map(int, input().split()))
+
+INF = 10**18
+
+# dist[i] = minimum cost to connect city i to electricity
+dist = c[:]                  # initially: build power station
+parent = [-1] * n             # -1 means connected to power source
+used = [False] * n
+
+total_cost = 0
+power_stations = []
+connections = []
+
+for _ in range(n):
+    # pick unused city with smallest dist
+    u = -1
+    best = INF
+    for i in range(n):
+        if not used[i] and dist[i] < best:
+            best = dist[i]
+            u = i
+
+    used[u] = True
+    total_cost += dist[u]
+
+    if parent[u] == -1:
+        power_stations.append(u + 1)
+    else:
+        connections.append((parent[u] + 1, u + 1))
+
+    # relax edges
+    for v in range(n):
+        if not used[v]:
+            cost = (k[u] + k[v]) * (abs(x[u] - x[v]) + abs(y[u] - y[v]))
+            if cost < dist[v]:
+                dist[v] = cost
+                parent[v] = u
+
+# Output
+print(total_cost)
+print(len(power_stations))
+print(*power_stations)
+print(len(connections))
+for u, v in connections:
+    print(u, v)
+
+# x[i], y[i] = distance of city i from shrine
+# c[i] cost to build power station in city i
+# k[i] base cost connecting city i using wire
 
 
 # Shortest Path
-##
-##
+def edgelist_to_adj(n: int, edgelist: list[WeightedEdge], directed=False) -> dict[int, list[tuple[int, int]]]:
+    adj = {i: [] for i in range(n)}
+    for w, i, j in edgelist:
+        adj[i].append((w, j))
+        if not directed:
+            adj[j].append((w, i))
+    return adj
+
+## Bellman-Ford
+### Shortest dists from a source node, works with negative weights, detects negative cycles
+
+INF = 10**18
+
+def bellman_ford(n, edges, source):
+    """
+    n: number of vertices (0 to n-1)
+    edges: list of (u, v, w) edges
+    source: source vertex
+    Returns:
+        dist[]: shortest distances
+        has_negative_cycle: True/False
+    """
+    dist = [INF] * n
+    dist[source] = 0
+
+    # Relax all edges n-1 times
+    for _ in range(n - 1):
+        updated = False
+        for u, v, w in edges:
+            if dist[u] != INF and dist[v] > dist[u] + w:
+                dist[v] = dist[u] + w
+                updated = True
+        if not updated:
+            break
+
+    # Check for negative cycle
+    has_negative_cycle = False
+    for u, v, w in edges:
+        if dist[u] != INF and dist[v] > dist[u] + w:
+            has_negative_cycle = True
+            break
+
+    return dist, has_negative_cycle
+
+
+## Floyd's
+### All pairs sp, handles negative weights, detects neg cycles
+INF = 10**18
+
+def floyd_warshall(n, edges):
+    """
+    n: number of vertices (0 to n-1)
+    edges: list of (u, v, w) edges (directed or undirected)
+    Returns:
+        dist: n x n distance matrix
+        has_negative_cycle: True/False
+    """
+    # Initialize distance matrix
+    dist = [[INF] * n for _ in range(n)]
+    for i in range(n):
+        dist[i][i] = 0
+
+    for u, v, w in edges:
+        dist[u][v] = min(dist[u][v], w)
+
+    # Main DP
+    for k in range(n):
+        for i in range(n):
+            for j in range(n):
+                if dist[i][k] + dist[k][j] < dist[i][j]:
+                    dist[i][j] = dist[i][k] + dist[k][j]
+
+    # Detect negative cycles
+    has_negative_cycle = False
+    for i in range(n):
+        if dist[i][i] < 0:
+            has_negative_cycle = True
+            break
+
+    return dist, has_negative_cycle
+
+
 ##
