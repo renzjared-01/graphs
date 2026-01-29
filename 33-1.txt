@@ -215,6 +215,21 @@ def bellman_ford(n, edges, source):
 
     return dist, has_negative_cycle
 
+def bellman_ford(grid, n, source):
+    dist = [float('inf')] * n
+    dist[source] = 0
+
+    for _ in range(n-1):
+        for u, v, cost in grid:
+            if dist[u] != float('inf') and dist[u] + cost < dist[v]:
+                dist[v] = dist[u] + cost
+    
+    for u, v, cost in grid:
+        if dist[u] != float('inf') and dist[u] + cost < dist[v]:
+            return "negative cycle"
+        
+    for i in range(n-1):
+        print(f"Distance to node {i} is {dist[i]}")
 
 ## Floyd's
 ### All pairs sp, handles negative weights, detects neg cycles
