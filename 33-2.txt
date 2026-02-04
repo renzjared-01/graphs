@@ -85,6 +85,122 @@ class OrderedSet:
 newtreap = OrderedSet()
 
 ## AVL
+from __future__ import annotations
+from dataclasses import dataclass, field
+
+@dataclass(slots=True)
+class Node:
+    value: object
+    h: int = 0
+    l: Node | None = field(default=None)
+    r: Node | None = field(default=None)
+
+    @staticmethod
+    def height(node):
+        return -1 if node is None else node.h
+
+    def update_height(self):
+        self.h = max(Node.height(self.l), Node.height(self.r)) + 1
+
+    def rotate_left(self):
+        y = self.r
+        self.r = y.l
+        y.l = self
+        self.update_height()
+        y.update_height()
+        return y
+
+    def rotate_right(self):
+        y = self.l
+        self.l = y.r
+        y.r = self
+        self.update_height()
+        y.update_height()
+        return y
+
+    def rebalance(self):
+        self.update_height()
+        balance = Node.height(self.l) - Node.height(self.r)
+
+        # Left heavy
+        if balance > 1:
+            if Node.height(self.l.l) < Node.height(self.l.r):
+                self.l = self.l.rotate_left()
+            return self.rotate_right()
+
+        # Right heavy
+        if balance < -1:
+            if Node.height(self.r.r) < Node.height(self.r.l):
+                self.r = self.r.rotate_right()
+            return self.rotate_left()
+
+        return self
+    
+    def insert(self, value):
+        if value < self.value:
+            self.l = self.l.insert(value) if self.l else Node(value)
+        elif value > self.value:
+            self.r = self.r.insert(value) if self.r else Node(value)
+        # duplicates ignored
+        return self.rebalance()
+
+    def delete(self, value):
+        if value < self.value:
+            if self.l:
+                self.l = self.l.delete(value)
+        elif value > self.value:
+            if self.r:
+                self.r = self.r.delete(value)
+        else:  # found node to delete
+            if self.l is None:
+                return self.r
+            elif self.r is None:
+                return self.l
+            else:
+                self.value, self.r = self.r.delete_smallest()
+        return self.rebalance()
+
+    def delete_smallest(self):
+        if self.l is None:
+            return self.value, self.r
+        else:
+            val, self.l = self.l.delete_smallest()
+            return val, self.rebalance()
+
+    def contains(self, value):
+        if value == self.value:
+            return True
+        elif value < self.value:
+            return self.l.contains(value) if self.l else False
+        else:
+            return self.r.contains(value) if self.r else False
+
+    def next_larger(self, value):
+        if value < self.value:
+            if self.l:
+                res = self.l.next_larger(value)
+                if res is not None:
+                    return res
+            return self.value
+        else:
+            return self.r.next_larger(value) if self.r else None
+
+class OrderedSet:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, value):
+        self.root = self.root.insert(value) if self.root else Node(value)
+
+    def delete(self, value):
+        if self.root:
+            self.root = self.root.delete(value)
+
+    def contains(self, value):
+        return self.root.contains(value) if self.root else False
+
+    def next_larger(self, value):
+        return self.root.next_larger(value) if self.root else None
 
 
 # Advanced DFS
@@ -204,3 +320,5 @@ if __name__ == '__main__':
             (6, 5),
         ]):
         print(scc)
+
+### Kosaraju (C)
