@@ -162,4 +162,45 @@ if __name__ == '__main__':
     print(f"{bridges = }")
     print(f"{artics = }")
 
-## 
+## Kosaraju's
+# find strongly connected components
+def kosaraju(n, edges):
+    adj = [[] for e in range(n)]
+    adj_r = [[] for e in range(n)]
+    for i, j in edges:
+        adj[i].append(j)
+        adj_r[j].append(i) #reversed
+
+    visited = [False] * n
+
+    def dfs(i, adj, out):
+        visited[i] = True
+        for j in adj[i]:
+            if not visited[j]:
+                dfs(j, adj, out)
+        out.append(i)
+
+    stack = []
+    for i in range(n):
+        if not visited[i]:
+            dfs(i, adj, stack)
+
+    visited[:] = [False] * n
+    for i in reversed(stack): #decr order
+        if not visited[i]:
+            scc = []
+            dfs(i, adj_r, scc)
+            yield scc
+
+if __name__ == '__main__':
+    for scc in kosaraju(7, [
+            (1, 2),
+            (2, 3),
+            (3, 1),
+            (0, 4),
+            (4, 3),
+            (5, 0),
+            (0, 6),
+            (6, 5),
+        ]):
+        print(scc)
