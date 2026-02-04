@@ -1,4 +1,5 @@
-# Treap
+# Self-balancing Trees
+## Treap
 from dataclasses import dataclass, field
 from random import Random
 
@@ -83,4 +84,82 @@ class OrderedSet:
 
 newtreap = OrderedSet()
 
-# AVL
+## AVL
+
+
+# Advanced DFS
+def bridges_and_articulation_points(n, edges):
+    adj = [[] for _ in range(n)]
+    for idx, (i, j) in enumerate(edges):
+        assert 0 <= i < n
+        assert 0 <= j < n
+        adj[i].append((j, idx))
+        adj[j].append((i, idx))
+
+    disc = [-1]*n
+    low = [-1]*n
+
+    is_artic = [False]*n
+    is_bridge = [False]*len(edges)
+
+    time = 0
+    def dfs(i, pidx=-1):
+        nonlocal time
+        disc[i] = time
+        time += 1
+
+        low[i] = disc[i]
+        children_count = 0
+        for j, idx in adj[i]:
+            if idx == pidx:  # this is the parent edge
+                continue
+
+            if disc[j] == -1:  # this is a tree edge
+                dfs(j, idx)
+                low[i] = min(low[i], low[j])
+
+                if low[j] > disc[i]:
+                    is_bridge[idx] = True
+
+                if low[j] >= disc[i]:
+                    is_artic[i] = True
+
+                children_count += 1
+
+            else:  # this is a back edge
+                low[i] = min(low[i], disc[j])
+
+        if pidx == -1:
+            is_artic[i] = children_count >= 2
+
+    # run a DFS on all components
+    for s in range(n):
+        if disc[s] == -1:
+            dfs(s)
+
+    bridges = [(i, j) for bridge, (i, j) in zip(is_bridge, edges, strict=True) if bridge]
+    artics = [i for i in range(n) if is_artic[i]]
+
+    return bridges, artics
+
+
+if __name__ == '__main__':
+    bridges, artics = bridges_and_articulation_points(10, [
+        (0, 2),
+        (1, 2),
+        (2, 5),
+        (0, 5),
+        (0, 1),
+        (5, 9),
+        (4, 7),
+        (7, 8),
+        (6, 7),
+        (4, 6),
+        (3, 4),
+        (3, 5),
+    ])
+
+    print(f"{bridges = }")
+    print(f"{artics = }")
+
+## 
