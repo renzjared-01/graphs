@@ -1,1 +1,86 @@
+# Treap
+from dataclasses import dataclass, field
+from random import Random
 
+rand = Random()
+def random_priority():
+    return rand.getrandbits(64)
+
+@dataclass(slots=True)
+class Node:
+    value: int
+    priority: int = field(default_factory=random_priority)
+    l: object = field(default=None)
+    r: object = field(default=None)
+
+def split(t, v):
+    if t is None:
+        return None, None, None
+
+    if v == t.value:
+        l, r = t.l, t.r
+        t.l = None
+        t.r = None
+        return l, t, r
+
+    if v < t.value:
+        l, m, t.l = split(t.l, v)
+        return l, m, t
+    else:
+        t.r, m, r = split(t.r, v)
+        return t, m, r
+
+def merge(l, r):
+    if l is None:
+        return r
+    if r is None:
+        return l
+
+    if l.priority > r.priority:
+        l.r = merge(l.r, r)
+        return l
+    else:
+        r.l = merge(l, r.l)
+        return r
+
+def contains(t, v):
+    while t is not None:
+        if v == t.value:
+            return True
+        t = t.l if v < t.value else t.r
+    return False
+
+def next_larger(t, v):
+    res = None
+    while t is not None:
+        if v < t.value:
+            res = t.value
+            t = t.l
+        else:
+            t = t.r
+    return res
+
+
+class OrderedSet:
+    def __init__(self):
+        self.root = None
+
+    def contains(self, v):
+        return contains(self.root, v)
+
+    def insert(self, v):
+        l, m, r = split(self.root, v)
+        if m is None:
+            m = Node(v)
+        self.root = merge(merge(l, m), r)
+
+    def delete(self, v):
+        l, _, r = split(self.root, v)
+        self.root = merge(l, r)
+
+    def next_larger(self, v):
+        return next_larger(self.root, v)
+
+newtreap = OrderedSet()
+
+# AVL
