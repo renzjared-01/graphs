@@ -84,6 +84,163 @@ class OrderedSet:
 
 newtreap = OrderedSet()
 
+### Treap (C)
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <time.h>
+
+typedef struct Node {
+    int64_t value;
+    int64_t priority;
+    struct Node *l;
+    struct Node *r;
+} Node;
+
+int64_t random_priority(void) {
+    int64_t rnd = 0;
+    for (int i=0; i < 4; i++) {
+        rnd = (rnd << 16)^rand();
+    }
+    return rnd;
+}
+
+Node *new_node(int64_t v) {
+    Node *n = malloc(sizeof(Node));
+    n->value = v;
+    n->priority = random_priority();
+    n->l = NULL;
+    n->r = NULL;
+    return n;
+}
+
+void split(Node *t, int64_t v, Node **l, Node **m, Node **r) {
+    if (t==NULL) {
+        *l = *m = *r = NULL;
+        return;
+    }
+
+    if (v == t->value) {
+        *l = t->l;
+        *r = t->r;
+        t->l = t->r = NULL;
+        *m = t;
+        return;
+    }
+
+    if (v < t->value) {
+        split(t->l, v, l, m, &t->l);
+        *r = t;
+    } else {
+        split(t->r, v, &t->r, m, r);
+        *l = t;
+    }
+}
+
+Node *merge(Node *l, Node *r) {
+    if (!l) {
+        return r;
+    }
+    if (!r) {
+        return l;
+    }
+
+    if (l->priority > r->priority) {
+        l->r = merge(l->r, r);
+        return l;
+    } else {
+        r->l = merge(l, r->l);
+        return r;
+    }
+}
+
+int _contains(Node *t, int64_t v) {
+    while (t) {
+        if (v == t->value) {
+            return 1;
+        }
+        t = (v < t->value) ? t->l : t->r;
+    }
+    return 0;
+}
+
+int64_t next_larger(Node *t, int64_t v, int *found) {
+    int64_t res = 0;
+    *found = 0;
+
+    while (t) {
+        if (v < t->value) {
+            res = t->value;
+            *found = 1;
+            t = t->l;
+        } else {
+            t = t->r;
+        }
+    }
+    return res;
+}
+
+
+
+typedef struct {
+    Node *root;
+} OrderedSet;
+
+void init(OrderedSet *s) {
+    s->root = NULL;
+}
+
+int contains(OrderedSet *s, int64_t v) {
+    return _contains(s->root, v);
+}
+
+void insert(OrderedSet *s, int64_t v) {
+    Node *l, *m, *r;
+    split(s->root, v, &l, &m, &r);
+    if (!m) {
+        m = new_node(v);
+    }
+    s->root = merge(merge(l, m), r);
+}
+
+void delete(OrderedSet *s, int64_t v) {
+    Node *l, *m, *r;
+    split(s->root, v, &l, &m, &r);
+    s->root = merge(l, r);
+}
+
+int64_t os_next_larger(OrderedSet *s, int64_t v, int *found) {
+    return next_larger(s->root, v, found);
+}
+
+int main(void) {
+    srand((unsigned)time(NULL));
+    OrderedSet s;
+    init(&s);
+
+    insert(&s, 5);
+    insert(&s, 2);
+    insert(&s, 8);
+    insert(&s, 6);
+
+    printf("contains 5: %d\n", contains(&s, 5));
+    printf("contains 7: %d\n", contains(&s, 7));
+
+    int found;
+    int64_t x = os_next_larger(&s, 5, &found);
+    if (found)
+        printf("next larger than 5: %ld\n", x);
+    else
+        printf("no next larger\n");
+
+    delete(&s, 5);
+    printf("contains 5 after delete: %d\n", contains(&s, 5));
+
+    return 0;
+}
+
+
+
 ## AVL
 from __future__ import annotations
 from dataclasses import dataclass, field
