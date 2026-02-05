@@ -348,10 +348,10 @@ void dfs(int u, Node* adj[], bool visited[], int stack[], int* top, int n) {
     stack[(*top)++] = u;
 }
 
-void dfs_collect(int u, Node* adj[], bool visited[], int scc[], int* scc_size) {
-    visited[u] = true;
-    scc[(*scc_size)++] = u;
-    for (Node* curr = adj[u]; curr != NULL; curr = curr->next) {
+void dfs_collect(int i, Node* adj[], bool visited[], int scc[], int* scc_size) {
+    visited[i] = true;
+    scc[(*scc_size)++] = i;
+    for (Node *curr = adj[i]; curr != NULL; curr = curr->next) {
         if (!visited[curr->val])
             dfs_collect(curr->val, adj, visited, scc, scc_size);
     }
@@ -425,4 +425,3 @@ int main() {
     }
     return 0;
 }
-
