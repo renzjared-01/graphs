@@ -1,1 +1,74 @@
+# [07]
+## Range Min
 
+class Node:
+    def __init__(self, arr, i, j):
+        self.i = i
+        self.j = j
+
+        if self.is_leaf:
+            self.min = arr[i]
+            self.l = None
+            self.r = None
+        else:
+            k = (i + j) // 2
+            self.l = Node(arr, i, k)
+            self.r = Node(arr, k, j)
+            self.combine()
+        super().__init__()
+
+    def combine(self):
+        self.min = min(self.l.min, self.r.min)
+
+    def range_min(self, i, j):
+        if i <= self.i and self.j <= j:
+            return self.min
+        elif j <= self.i or self.j <= i:
+            return float('inf')
+        else:
+            return min(
+                self.l.range_min(i, j),
+                self.r.range_min(i, j)
+            )
+
+    def assign(self, i, v):
+        if i >= self.i and i < self.j:
+            if self.is_leaf:
+                self.min = v
+            else:
+                self.l.assign(i, v)
+                self.r.assign(i, v)
+                self.combine()
+
+    @property
+    def is_leaf(self):
+        return self.j - self.i == 1
+
+
+class RangeMin:
+    def __init__(self, a):
+        a = list(a)
+        self.root = Node(a, 0, len(a))
+        super().__init__()
+
+    def range_min(self, i, j):
+        return self.root.range_min(i, j)
+
+    def __setitem__(self, i, v):
+        self.root.assign(i, v)
+
+if __name__ == '__main__':
+    a = [1, 2, 3, 4, 5]
+    rm = RangeMin(a)
+    assert rm.range_min(0, 5) == 1
+    assert rm.range_min(0, 3) == 1
+    assert rm.range_min(1, 4) == 2
+    assert rm.range_min(2, 5) == 3
+
+    rm[2] = -1
+    assert rm.range_min(0, 5) == -1
+    assert rm.range_min(0, 3) == -1
+    assert rm.range_min(1, 4) == -1
+    assert rm.range_min(2, 5) == -1
+
+##
