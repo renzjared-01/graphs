@@ -1,5 +1,56 @@
 # [05]
-## 
+## Eulerian
+def hierholzer(n, edges):
+    adj = [[] for _ in range(n)]
+    for idx, (i, j) in enumerate(edges):
+        adj[i].append((j, idx))
+        adj[j].append((i, idx))
+
+    degree = [0] * n
+    for i, j in edges:
+        degree[i] += 1
+        degree[j] += 1
+
+    # start
+    odd = [i for i in range(n) if degree[i] % 2]
+    if len(odd) == 0:
+        start = next((i for i in range(n) if degree[i] > 0), 0)
+    elif len(odd) == 2:
+        start = odd[0]
+    else:
+        pass
+        # no eulerian path
+
+    used = [False]*len(edges)
+    stack = [start]
+    res = []
+
+    while stack:
+        v = stack[-1]
+        while adj[v] and used[adj[v][-1][1]]:
+            adj[v].pop()
+
+        if not adj[v]:
+            stack.pop()
+        else:
+            u, idx = adj[v].pop()
+            used[idx] = True
+            stack.append(u)
+            res.append(idx)
+
+    return start, res
+
+
+if __name__ == '__main__':
+    print(hierholzer(6, [
+        (0, 1),
+        (1, 2),
+        (2, 0),
+        (0, 4),
+        (4, 3),
+        (3, 0),
+        (4, 5),
+    ]))
 
 
 # [06]
