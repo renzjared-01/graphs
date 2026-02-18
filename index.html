@@ -38,7 +38,7 @@
   </style>
 </head>
 <body>
-  <p>C.</p>
+  <p></p>
 
   <pre id="snippet">Loading.</pre>
   <button id="copyBtn">[         ]</button>
@@ -55,7 +55,7 @@
       })
       .then(text => {
         snippetText = text;
-        snippetElement.textContent = "blank";
+        snippetElement.textContent = "";
       })
       .catch(err => {
         snippetElement.textContent = "Error loading snippet: " + err.message;
