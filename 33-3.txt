@@ -1,3 +1,11 @@
+# [05]
+## 
+
+
+# [06]
+## 
+
+
 # [07]
 ## Range Min
 
@@ -71,4 +79,84 @@ if __name__ == '__main__':
     assert rm.range_min(1, 4) == -1
     assert rm.range_min(2, 5) == -1
 
-##
+## Heavy Path Decom
+class HeavyLightDecomposition:
+    def __init__(self, n):
+        self.n = n
+        self.adj = [[] for _ in range(n)]
+
+        self.parent = [-1] * n
+        self.depth = [0] * n
+        self.heavy = [-1] * n
+        self.head = [0] * n
+        self.pos = [0] * n
+        self.subsize = [0] * n
+
+        self.cur_pos = 0
+
+    def add_edge(self, u, v):
+        self.adj[u].append(v)
+        self.adj[v].append(u)
+
+    # First DFS: compute subtree sizes + heavy child
+    def dfs(self, v, p):
+        self.parent[v] = p
+        self.subsize[v] = 1
+        max_subsize = 0
+
+        for u in self.adj[v]:
+            if u != p:
+                self.depth[u] = self.depth[v] + 1
+                self.dfs(u, v)
+
+                self.subsize[v] += self.subsize[u]
+
+                if self.subsize[u] > max_subsize:
+                    max_subsize = self.subsize[u]
+                    self.heavy[v] = u
+
+    # Second DFS: assign head + position
+    def decompose(self, v, h):
+        self.head[v] = h
+        self.pos[v] = self.cur_pos
+        self.cur_pos += 1
+
+        # Continue heavy path
+        if self.heavy[v] != -1:
+            self.decompose(self.heavy[v], h)
+
+        # Decompose light edges
+        for u in self.adj[v]:
+            if u != self.parent[v] and u != self.heavy[v]:
+                self.decompose(u, u)
+
+    def build(self, root=0):
+        self.dfs(root, -1)
+        self.decompose(root, root)
+
+hld = HeavyLightDecomposition(n)
+# add edges...
+hld.build(0)
+
+def query_path(hld, u, v, segtree):
+    res = 0  # or identity element
+
+    while hld.head[u] != hld.head[v]:
+        if hld.depth[hld.head[u]] < hld.depth[hld.head[v]]:
+            u, v = v, u
+
+        head_u = hld.head[u]
+        res += segtree.query(hld.pos[head_u], hld.pos[u])
+        u = hld.parent[head_u]
+
+    # same head
+    if hld.depth[u] > hld.depth[v]:
+        u, v = v, u
+
+    res += segtree.query(hld.pos[u], hld.pos[v])
+    return res
+
+
+# [08]
+## Centroid Decom
+
