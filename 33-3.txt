@@ -1,5 +1,3 @@
-# [05]
-## Eulerian
 def hierholzer(n, edges):
     adj = [[] for _ in range(n)]
     for idx, (i, j) in enumerate(edges):
@@ -18,27 +16,35 @@ def hierholzer(n, edges):
     elif len(odd) == 2:
         start = odd[0]
     else:
-        pass
+        raise ValueError('no eulerian path')
         # no eulerian path
 
     used = [False]*len(edges)
     stack = [start]
+    edge_stack = []   # store edge indices parallel to stack
     res = []
 
     while stack:
         v = stack[-1]
+
+        # skip used edges
         while adj[v] and used[adj[v][-1][1]]:
             adj[v].pop()
 
-        if not adj[v]:
-            stack.pop()
-        else:
+        if adj[v]:
             u, idx = adj[v].pop()
             used[idx] = True
             stack.append(u)
-            res.append(idx)
+            edge_stack.append(idx)
+        else:
+            stack.pop()
+            if edge_stack:
+                res.append(edge_stack.pop())
+    
+    if not all(used):
+        raise ValueError('not all edges used')
 
-    return start, res
+    return start, res[::-1]
 
 
 if __name__ == '__main__':
