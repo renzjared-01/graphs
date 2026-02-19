@@ -58,6 +58,133 @@ if __name__ == '__main__':
         (4, 5),
     ]))
 
+# C
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct EdgeNode {
+    int to;
+    int edge_idx;
+    struct EdgeNode* next;
+} EdgeNode;
+
+typedef struct {
+    EdgeNode** adj;
+    int* degree;
+    int n;
+    int num_edges;
+} Graph;
+
+void add_edge(Graph* g, int u, int v, int idx) {
+    EdgeNode* node = (EdgeNode*)malloc(sizeof(EdgeNode));
+    node->to = v;
+    node->edge_idx = idx;
+    node->next = g->adj[u];
+    g->adj[u] = node;
+    g->degree[u]++;
+}
+
+void solve_hierholzer(int n, int num_edges, int edge_pairs[][2]) {
+    Graph g;
+    g.n = n;
+    g.num_edges = num_edges;
+    g.adj = (EdgeNode**)calloc(n, sizeof(EdgeNode*));
+    g.degree = (int*)calloc(n, sizeof(int));
+
+    for (int i = 0; i < num_edges; i++) {
+        add_edge(&g, edge_pairs[i][0], edge_pairs[i][1], i);
+        add_edge(&g, edge_pairs[i][1], edge_pairs[i][0], i);
+    }
+
+    // 1. Find Start Node
+    int start = -1;
+    int odd_count = 0;
+    int odd_nodes[2];
+    for (int i = 0; i < n; i++) {
+        if (g.degree[i] % 2 != 0) {
+            if (odd_count < 2) odd_nodes[odd_count] = i;
+            odd_count++;
+        }
+    }
+
+    if (odd_count == 0) {
+        for (int i = 0; i < n; i++) if (g.degree[i] > 0) { start = i; break; }
+        if (start == -1) start = 0;
+    } else if (odd_count == 2) {
+        start = odd_nodes[0];
+    } else {
+        printf("Error: No Eulerian Path exists (odd degrees: %d)\n", odd_count);
+        return;
+    }
+
+    // 2. Traversal Data Structures
+    bool* used = (bool*)calloc(num_edges, sizeof(bool));
+    int* stack = (int*)malloc((num_edges + 1) * sizeof(int));
+    int* edge_stack = (int*)malloc(num_edges * sizeof(int));
+    int* res = (int*)malloc(num_edges * sizeof(int));
+    
+    int s_ptr = 0, es_ptr = 0, res_ptr = 0;
+    stack[s_ptr++] = start;
+
+    // 3. Main Loop
+    while (s_ptr > 0) {
+        int v = stack[s_ptr - 1];
+
+        // Clean up used edges at the head of the list
+        while (g.adj[v] && used[g.adj[v]->edge_idx]) {
+            EdgeNode* tmp = g.adj[v];
+            g.adj[v] = g.adj[v]->next;
+            free(tmp);
+        }
+
+        if (g.adj[v]) {
+            // Forward move
+            EdgeNode* edge = g.adj[v];
+            int u = edge->to;
+            int idx = edge->edge_idx;
+
+            used[idx] = true;
+            g.adj[v] = g.adj[v]->next; // "Pop" from adj list
+            free(edge);
+
+            stack[s_ptr++] = u;
+            edge_stack[es_ptr++] = idx;
+        } else {
+            // Backtrack
+            s_ptr--;
+            if (es_ptr > 0) {
+                res[res_ptr++] = edge_stack[--es_ptr];
+            }
+        }
+    }
+
+    // 4. Validation and Output
+    if (res_ptr != num_edges) {
+        printf("Error: Not all edges used. Graph might be disconnected.\n");
+    } else {
+        printf("Start node: %d\nPath (edges): ", start);
+        // Note: res is filled in postorder, so printing reverse for result order
+        for (int i = res_ptr - 1; i >= 0; i--) {
+            printf("%d ", res[i]);
+        }
+        printf("\n");
+    }
+
+    // Cleanup
+    free(used); free(stack); free(edge_stack); free(res); free(g.degree);
+    for (int i = 0; i < n; i++) {
+        EdgeNode* curr = g.adj[i];
+        while (curr) { EdgeNode* next = curr->next; free(curr); curr = next; }
+    }
+    free(g.adj);
+}
+
+int main() {
+    int edges[7][2] = {{0,1}, {1,2}, {2,0}, {0,4}, {4,3}, {3,0}, {4,5}};
+    solve_hierholzer(6, 7, edges);
+    return 0;
+}
 
 # [06]
 ## LCA
