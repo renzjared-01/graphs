@@ -167,4 +167,67 @@ def query_path(hld, u, v, segtree):
 
 # [08]
 ## Centroid Decom
+import random
 
+from sample_graphs import T_ud_centroid_el as T_el
+
+
+def edgelist_to_adj(n, el):
+    adj = {i: [] for i in range(n)}
+    for i, j in el:
+        adj[i].append(j)
+        adj[j].append(i)
+    return adj
+
+
+def dfs_size(adj, i, p, done):
+    sz = 1
+    for j in adj[i]:
+        if j != p and j not in done:
+            sz += dfs_size(adj, j, i, done)
+    return sz
+
+
+def dfs_centroid(adj, i, done):
+    n = dfs_size(adj, i, None, done)
+    centroid = None
+
+    def _dfs(i, p):
+        nonlocal centroid
+        wi = 1
+        ok_centroid = True
+
+        for j in adj[i]:
+            if j != p and j not in done:
+                wj = _dfs(j, i)
+                wi += wj
+                if wj * 2 > n:
+                    # size of subtree under j is too large
+                    ok_centroid = False
+        if wi * 2 < n:  # size of all subtrees of i is too small
+            ok_centroid = False
+        if ok_centroid:
+            centroid = i
+        return wi
+
+    _dfs(i, None)
+    return centroid
+
+
+def centroid_dnc(adj, i):
+    done = set()
+
+    def _centroid_dnc(i):
+        centroid = dfs_centroid(adj, i, done)
+        # for calculations that require the centroid, do it here
+        done.add(centroid)
+        print(centroid, end=' ')
+        for j in adj[centroid]:
+            if j not in done:
+                _centroid_dnc(j)
+
+    _centroid_dnc(i)
+
+
+adj = edgelist_to_adj(*T_el)
+centroid_dnc(adj, random.randint(0, len(adj) - 1))
