@@ -57,6 +57,22 @@ class RangeMin:
     def __setitem__(self, i, v):
         self.root.assign(i, v)
 
+def merge(a, b):
+    if a is None: return b
+    if b is None: return a
+    return original_operator(a, b)
+
+def query(node, i, j):
+    if i <= node.i and node.j <= j:
+        return node.m
+    if j <= node.i or node.j <= i:
+        return None  # This is our invented identity
+    
+    left_res = query(node.l, i, j)
+    right_res = query(node.r, i, j)
+    
+    return merge(left_res, right_res)
+
 if __name__ == '__main__':
     a = [1, 2, 3, 4, 5]
     rm = RangeMin(a)
