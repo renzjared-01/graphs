@@ -163,6 +163,144 @@ def query_path(hld, u, v, segtree):
 
     res += segtree.query(hld.pos[u], hld.pos[v])
     return res
+## HLD2
+
+from dataclasses import dataclass, field
+from typing import Callable
+
+from sample_graphs import T_ud_edgelist as G1_edgelist
+from segtree import RangeQuery
+
+
+@dataclass(slots=True)
+class TreeNode:
+    id: int
+    val: int
+    children: "list[TreeNode]" = field(default_factory=list)
+    depth: int = -1
+    weight: int = 1
+    p: "TreeNode | None" = None
+    top: "TreeNode | None" = None
+
+    def is_leaf(self):
+        return not self.children
+
+
+def edgelist_to_adj(n: int, el: list[tuple[int, int]]) -> dict[int, list[int]]:
+    adj = {i: [] for i in range(n)}
+    for i, j in el:
+        adj[i].append(j)
+        adj[j].append(i)
+    return adj
+
+
+class HeavyLightDecomp:
+    def __init__(self, adj: dict[int, list[int]], values: list[int], f: Callable[[int, int], int], f_ident: int, r: int = 0):
+        self._adj = dict(adj)
+        self._f = f
+        self._f_ident = f_ident
+
+        self._root, self._nodes = self._get_rooted_tree(values, r)
+        self._compute_tops()
+        self._flat, self._node_id_to_idx = self._get_heavy_paths()
+
+        self._values = [self._nodes[i].val for i in self._flat]
+        self._range_query = RangeQuery(self._values, f, f_ident)
+
+    def path_query(self, u: int, v: int):
+        u_node = self._nodes[u]
+        v_node = self._nodes[v]
+        ans = self._f_ident
+
+        while True:
+            u_idx = self._node_id_to_idx[u_node.id]
+            v_idx = self._node_id_to_idx[v_node.id]
+            if u_node.top.depth == v_node.top.depth:
+                res = self._range_query.get(min(u_idx, v_idx), max(u_idx, v_idx) + 1)
+                ans = self._f(ans, res)
+                break
+            elif u_node.top.depth > v_node.top.depth:
+                top_idx = self._node_id_to_idx[u_node.top.id]
+                res = self._range_query.get(min(u_idx, top_idx), max(u_idx, top_idx) + 1)
+                ans = self._f(ans, res)
+                u_node = u_node.top.p
+            else:
+                top_idx = self._node_id_to_idx[v_node.top.id]
+                res = self._range_query.get(min(v_idx, top_idx), max(v_idx, top_idx) + 1)
+                ans = self._f(ans, res)
+                v_node = v_node.top.p
+        return ans
+
+    def set(self, i: int, val: int):
+        self._nodes[i].val = val
+        self._values[self._node_id_to_idx[i]] = val
+        self._range_query.set(i, val)
+
+
+    def _get_rooted_tree(self, vals: list[int], r: int):
+        n = len(self._adj)
+        nodes = [None] * n
+
+        def _dfs(i, p):
+            node = TreeNode(i, vals[i])
+            nodes[i] = node
+            node.p = nodes[p]
+            node.depth = node.p.depth + 1
+            for j in self._adj[i]:
+                if j != p:
+                    child = _dfs(j, i)
+                    node.children.append(child)
+                    node.weight += child.weight
+            heavy_child_idx, _ = max(
+                (tup for tup in enumerate(node.children)),
+                key=lambda t: (t[1].weight, -t[1].id),
+                default=(-1, None)
+            )
+            if heavy_child_idx != -1:
+                node.children[0], node.children[heavy_child_idx] = \
+                    node.children[heavy_child_idx], node.children[0]
+            return node
+
+        root = _dfs(r, r)
+        return root, nodes
+
+    def _compute_tops(self):
+        assert self._root is not None
+        # compute topmost node of heavy path the node belongs to
+        def _dfs(node):
+            if node.p is node:
+                node.top = node
+            elif node.p.children[0] is not node:
+                node.top = node
+            else:
+                node.top = node.p.top
+            for ch in node.children:
+                _dfs(ch)
+        _dfs(self._root)
+
+    def _get_heavy_paths(self):
+        # assumes heavy child is at children[0]
+        flat = []
+        node_id_to_idx = {}
+
+        def _dfs(node):
+            node_id_to_idx[node.id] = len(flat)
+            flat.append(node.id)
+            for ch in node.children:
+                _dfs(ch)
+        _dfs(self._root)
+        return (flat, node_id_to_idx)
+
+
+if __name__ == '__main__':
+    adj_G1 = edgelist_to_adj(*G1_edgelist)
+    n, el = G1_edgelist
+    HLD = HeavyLightDecomp(adj_G1, [i for i in range(n)], (lambda a, b: a + b), 0)
+    HLD.set(0, 1)
+    for i in range(n):
+        for j in range(i + 1, n):
+            ans = HLD.path_query(i, j)
+            print(f'{i} to {j}: sum = {ans}')
 
 
 # [08]
