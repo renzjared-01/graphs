@@ -1,5 +1,47 @@
 # [07]
 ## Range Min
+class FlatRangeMin:
+    def __init__(self, data, max_n=None, inf=float('inf')):
+        self.inf = inf
+        n = len(data)
+        if max_n is None:
+            max_n = n
+        
+        self.N = 1
+        while self.N < max_n:
+            self.N *= 2
+            
+        # Index 0 is unused; 1 is root; N to 2N-1 are leaves
+        self.tree = [inf] * (2 * self.N)
+        
+        for i in range(n):
+            self.tree[self.N + i] = data[i]
+            
+        for i in range(self.N - 1, 0, -1):
+            self.tree[i] = min(self.tree[2 * i], self.tree[2 * i + 1])
+
+    def update(self, i, val):
+        idx = self.N + i
+        self.tree[idx] = val
+        while idx > 1:
+            idx //= 2  # Move to parent
+            self.tree[idx] = min(self.tree[2 * idx], self.tree[2 * idx + 1])
+
+    def query(self, l, r):
+        res = self.inf
+        l += self.N
+        r += self.N
+        while l < r:
+            if l % 2 == 1: # If l is a right child, it's the only part of its parent we need
+                res = min(res, self.tree[l])
+                l += 1
+            if r % 2 == 1: # If r is a right child, r-1 is the left child we need
+                r -= 1
+                res = min(res, self.tree[r])
+            l //= 2
+            r //= 2
+        return res
+
 
 class LazyNode(Node):
     __slots__ = 'i', 'j', 'm', 'l', 'r', 'tag'
