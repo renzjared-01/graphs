@@ -87,39 +87,85 @@ class LazyNode(Node):
         return min(self.l.range_min(i, j, inf), self.r.range_min(i, j, inf))
 
 ## Subtree
+import math
+
+class SegmentTree:
+    """High-performance iterative Segment Tree for Range Minimum Queries."""
+    def __init__(self, data, inf=float('inf')):
+        self.inf = inf
+        n = len(data)
+        # Offset to the leaves: nearest power of 2 ensures a perfect tree
+        self.N = 1 << (n - 1).bit_length()
+        self.tree = [inf] * (2 * self.N)
+        
+        # Load data into leaves
+        for i in range(n):
+            self.tree[self.N + i] = data[i]
+            
+        # Build tree upwards
+        for i in range(self.N - 1, 0, -1):
+            self.tree[i] = min(self.tree[2 * i], self.tree[2 * i + 1])
+
+    def update(self, i, val):
+        idx = self.N + i
+        self.tree[idx] = val
+        while idx > 1:
+            idx >>= 1
+            self.tree[idx] = min(self.tree[2 * idx], self.tree[2 * idx + 1])
+
+    def query(self, l, r):
+        res = self.inf
+        l += self.N
+        r += self.N
+        while l < r:
+            if l & 1:
+                res = min(res, self.tree[l])
+                l += 1
+            if r & 1:
+                r -= 1
+                res = min(res, self.tree[r])
+            l >>= 1
+            r >>= 1
+        return res
+
+
 class SubtreeMin:
-    def __init__(self, values, edges, root):
+    """Translates Tree Subtree queries into Segment Tree Range queries."""
+    def __init__(self, values, edges, root=0):
         n = len(values)
         adj = [[] for _ in range(n)]
         for u, v in edges:
-            adj[u].append(v); adj[v].append(u)
+            adj[u].append(v)
+            adj[v].append(u)
 
-        self.tin = [0] * n   # Time In (index)
-        self.tout = [0] * n  # Time Out (rindex)
-        self.flat = []
-        
-        # Flatten the tree using DFS
+        self.tin = [0] * n   # Start index of subtree in flat array
+        self.tout = [0] * n  # End index (exclusive)
+        flat_order = []
+
+        # Iterative DFS using the 'Exit Marker' trick (~u)
         stack = [(root, -1)]
         while stack:
             u, p = stack.pop()
-            if u >= 0: # Entering node
-                self.tin[u] = len(self.flat)
-                self.flat.append(values[u])
-                # Push a marker to catch the "exit" from this node
-                stack.append((~u, p)) 
+            if u >= 0:  # Entering node
+                self.tin[u] = len(flat_order)
+                flat_order.append(values[u])
+                # Push exit marker, then children
+                stack.append((~u, p))
                 for v in adj[u]:
-                    if v != p: stack.append((v, u))
-            else: # Leaving node
-                self.tout[~u] = len(self.flat)
+                    if v != p:
+                        stack.append((v, u))
+            else:  # Leaving node
+                self.tout[~u] = len(flat_order)
 
-        self.st = RangeMin(self.flat)
+        self.st = SegmentTree(flat_order)
 
     def query(self, node_idx):
-        return self.st.range_min(self.tin[node_idx], self.tout[node_idx])
+        """Returns the minimum value in the subtree of node_idx."""
+        return self.st.query(self.tin[node_idx], self.tout[node_idx])
 
     def update(self, node_idx, val):
-        self.st[self.tin[node_idx]] = val
-
+        """Updates the value of a specific node and refreshes the tree."""
+        self.st.update(self.tin[node_idx], val)
 
 
 ## Heavy Path Decom
