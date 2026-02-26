@@ -1,91 +1,50 @@
 # [07]
 ## Range Min
 
-class Node:
-    def __init__(self, arr, i, j):
-        self.i = i
-        self.j = j
+class LazyNode(Node):
+    __slots__ = 'i', 'j', 'm', 'l', 'r', 'tag'
+    def __init__(self, a, i, j):
+        self.tag = 0  # Pending value to be added to children
+        super().__init__(a, i, j)
 
-        if self.is_leaf:
-            self.min = arr[i]
-            self.l = None
-            self.r = None
-        else:
-            k = (i + j) // 2
-            self.l = Node(arr, i, k)
-            self.r = Node(arr, k, j)
-            self.combine()
-        super().__init__()
+    def _apply(self, v):
+        """Apply an update to this node and mark it for children."""
+        self.m += v
+        self.tag += v
 
-    def combine(self):
-        self.min = min(self.l.min, self.r.min)
+    def push(self):
+        """Push the pending tag down to children."""
+        if self.tag != 0 and not self.is_leaf:
+            self.l._apply(self.tag)
+            self.r._apply(self.tag)
+            self.tag = 0
 
-    def range_min(self, i, j):
+    def range_add(self, i, j, v):
+        # 1. Full Overlap: Update this node and stop
         if i <= self.i and self.j <= j:
-            return self.min
-        elif j <= self.i or self.j <= i:
-            return float('inf')
-        else:
-            return min(
-                self.l.range_min(i, j),
-                self.r.range_min(i, j)
-            )
+            self._apply(v)
+            return
+        
+        # 2. No Overlap: Do nothing
+        if j <= self.i or self.j <= i:
+            return
 
-    def assign(self, i, v):
-        if i >= self.i and i < self.j:
-            if self.is_leaf:
-                self.min = v
-            else:
-                self.l.assign(i, v)
-                self.r.assign(i, v)
-                self.combine()
+        # 3. Partial Overlap: Push pending tags down, then recurse
+        self.push()
+        self.l.range_add(i, j, v)
+        self.r.range_add(i, j, v)
+        self.combine()
 
-    @property
-    def is_leaf(self):
-        return self.j - self.i == 1
+    def range_min(self, i, j, inf):
+        if i <= self.i and self.j <= j:
+            return self.m
+        if j <= self.i or self.j <= i:
+            return inf
+        
+        self.push() # Crucial: push tags before querying children
+        return min(self.l.range_min(i, j, inf), self.r.range_min(i, j, inf))
 
 
-class RangeMin:
-    def __init__(self, a):
-        a = list(a)
-        self.root = Node(a, 0, len(a))
-        super().__init__()
-
-    def range_min(self, i, j):
-        return self.root.range_min(i, j)
-
-    def __setitem__(self, i, v):
-        self.root.assign(i, v)
-
-def merge(a, b):
-    if a is None: return b
-    if b is None: return a
-    return original_operator(a, b)
-
-def query(node, i, j):
-    if i <= node.i and node.j <= j:
-        return node.m
-    if j <= node.i or node.j <= i:
-        return None  # This is our invented identity
-    
-    left_res = query(node.l, i, j)
-    right_res = query(node.r, i, j)
-    
-    return merge(left_res, right_res)
-
-if __name__ == '__main__':
-    a = [1, 2, 3, 4, 5]
-    rm = RangeMin(a)
-    assert rm.range_min(0, 5) == 1
-    assert rm.range_min(0, 3) == 1
-    assert rm.range_min(1, 4) == 2
-    assert rm.range_min(2, 5) == 3
-
-    rm[2] = -1
-    assert rm.range_min(0, 5) == -1
-    assert rm.range_min(0, 3) == -1
-    assert rm.range_min(1, 4) == -1
-    assert rm.range_min(2, 5) == -1
 
 ## Heavy Path Decom
 class HeavyLightDecomposition:
